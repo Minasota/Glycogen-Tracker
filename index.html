@@ -158,10 +158,11 @@
   <div class="header">
     <div style="flex:1; min-width:0;">
       <h1>Glycogen Tracker</h1>
-      <div class="bmr-bar" onclick="toggleBmrCalc()">
-        <span class="bmr-bar-label">BMR</span>
+      <div class="bmr-bar" onclick="toggleBmrCalc()" title="Edit BMR settings">
+        <span style="font-size:11px; color:var(--muted); font-weight:500;">⚙️ DRAIN RATE</span>
         <span class="bmr-bar-val" id="bmrBarVal">~1,940 kcal/day</span>
-        <span class="bmr-bar-arrow" id="bmrArrow">▾</span>
+        <span style="font-size:10px; color:var(--accent); font-weight:600; margin-left:2px; letter-spacing:0.04em;">EDIT ▾</span>
+        <span class="bmr-bar-arrow" id="bmrArrow" style="display:none"></span>
       </div>
     </div>
     <div class="balance-box">
@@ -203,11 +204,14 @@
       <div class="bmr-field" style="grid-column: span 2;">
         <label>GENERAL ACTIVITY LEVEL <span style="color:var(--muted);font-weight:400;font-size:10px;">(excluding logged exercise)</span></label>
         <select id="bmr-activity">
-          <option value="1.2">Sedentary (desk job, minimal movement)</option>
-          <option value="1.375" selected>Lightly active (light daily activity)</option>
-          <option value="1.55">Moderately active (physical job or regular activity)</option>
-          <option value="1.725">Very active (hard training most days)</option>
+          <option value="1.2">Mostly sitting — desk job, little walking</option>
+          <option value="1.375" selected>Light movement — walking around, standing</option>
+          <option value="1.55">On feet most of the day — nurse, retail, manual work</option>
+          <option value="1.725">Physically demanding job + very active lifestyle</option>
         </select>
+        <div style="font-size:10px; color:var(--muted); margin-top:5px; padding:7px 9px; background:rgba(251,191,36,0.06); border-radius:6px; border:1px solid rgba(251,191,36,0.15); line-height:1.5;">
+          ⚠️ This covers <strong>daily life only</strong> — not your workouts. If you swim 4–5×/week, log those manually and keep this on "Light movement". Picking "moderately active" because you swim would double-count those calories.
+        </div>
       </div>
     </div>
 
@@ -863,14 +867,14 @@ function loadBmrSettings() {
 
 function toggleBmrCalc(forceClose) {
   const panel = document.getElementById('bmrCalc');
-  const arrow = document.getElementById('bmrArrow');
   const isOpen = panel.classList.contains('open');
+  const editBtn = document.querySelector('.bmr-bar span[style*="color:var(--accent)"]');
   if (forceClose === false || isOpen) {
     panel.classList.remove('open');
-    arrow.classList.remove('open');
+    if (editBtn) editBtn.textContent = 'EDIT ▾';
   } else {
     panel.classList.add('open');
-    arrow.classList.add('open');
+    if (editBtn) editBtn.textContent = 'CLOSE ▴';
     recalcBmr();
   }
 }
