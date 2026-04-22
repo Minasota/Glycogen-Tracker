@@ -23,9 +23,19 @@
     --accent: #7c3aed;
     --now: #fbbf24;
     --deficit: #f43f5e;
+    --chart-bg: #111318;
+  }
+  body.light {
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --border: #dde1ea;
+    --text: #1a1d26;
+    --muted: #7b8299;
+    --accent: #6d28d9;
+    --chart-bg: #ffffff;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  html, body { background: var(--bg); color: var(--text); font-family: 'Courier New', monospace; min-height: 100vh; overscroll-behavior: none; }
+  html, body { background: var(--bg); color: var(--text); font-family: 'Courier New', monospace; min-height: 100vh; overscroll-behavior: none; transition: background 0.25s, color 0.25s; }
   .app { max-width: 600px; margin: 0 auto; padding: 14px 12px 110px; }
 
   /* Header */
@@ -116,7 +126,10 @@
 
   <div class="header">
     <div>
-      <h1>Glycogen Tracker</h1>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <h1>Glycogen Tracker</h1>
+        <button id="themeBtn" onclick="toggleTheme()" style="background:none; border:1px solid var(--border); border-radius:20px; padding:3px 9px; font-family:inherit; font-size:13px; color:var(--muted); cursor:pointer;">🌙</button>
+      </div>
       <div class="sub">BMR: ~1,940 kcal/day · 95kg · 172cm · 25y</div>
     </div>
     <div class="balance-box">
@@ -357,7 +370,7 @@ function drawChart() {
   const CW = W - PAD.left - PAD.right;
   const CH = H - PAD.top - PAD.bottom;
 
-  ctx.fillStyle = '#111318';
+  ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--chart-bg').trim() || '#111318';
   ctx.fillRect(0, 0, W, H);
 
   const now = nowMs();
@@ -612,7 +625,24 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 2200);
 }
 
+// ── Theme ─────────────────────────────────────────────────────
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light');
+  document.getElementById('themeBtn').textContent = isLight ? '☀️' : '🌙';
+  localStorage.setItem('glyco_theme', isLight ? 'light' : 'dark');
+  drawChart();
+}
+
+function loadTheme() {
+  const saved = localStorage.getItem('glyco_theme');
+  if (saved === 'light') {
+    document.body.classList.add('light');
+    document.getElementById('themeBtn').textContent = '☀️';
+  }
+}
+
 // ── Init ──────────────────────────────────────────────────────
+loadTheme();
 loadLogs();
 setDefaultInputs();
 updateBalance();
