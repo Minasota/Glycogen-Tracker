@@ -122,15 +122,47 @@
   .deficit-item { text-align: center; }
   .deficit-val { font-size: 15px; font-weight: bold; }
   .deficit-lbl { font-size: 9px; color: var(--muted); margin-top: 2px; }
+
+  /* BMR Calculator */
+  .bmr-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; cursor: pointer; }
+  .bmr-bar-label { font-size: 11px; color: var(--muted); letter-spacing: 0.05em; font-weight: 500; }
+  .bmr-bar-val { font-size: 11px; color: var(--accent); font-family: 'DM Mono', monospace; font-weight: 500; }
+  .bmr-bar-arrow { font-size: 10px; color: var(--muted); margin-left: auto; transition: transform 0.2s; }
+  .bmr-bar-arrow.open { transform: rotate(180deg); }
+  .bmr-calc { background: var(--surface); border-radius: 10px; border: 1px solid var(--border); padding: 14px; margin-bottom: 14px; display: none; }
+  .bmr-calc.open { display: block; }
+  .bmr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .bmr-field { display: flex; flex-direction: column; gap: 4px; }
+  .bmr-field label { font-size: 11px; color: var(--muted); font-weight: 500; }
+  .bmr-field input, .bmr-field select {
+    background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 10px; font-family: 'DM Sans', sans-serif;
+    font-size: 14px; width: 100%; outline: none; -webkit-appearance: none; appearance: none;
+  }
+  .bmr-field input:focus, .bmr-field select:focus { border-color: var(--accent); }
+  .bmr-result { background: var(--bg); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; border: 1px solid var(--border); }
+  .bmr-result-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .bmr-result-row:last-child { margin-bottom: 0; }
+  .bmr-result-label { font-size: 11px; color: var(--muted); }
+  .bmr-result-val { font-size: 13px; font-weight: 700; font-family: 'DM Mono', monospace; color: var(--bmr); }
+  .bmr-apply-btn { width: 100%; padding: 10px; border-radius: 8px; border: none; background: var(--accent); color: #fff; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; letter-spacing: 0.04em; }
+  .bmr-apply-btn:active { opacity: 0.8; }
+  .sex-btns { display: flex; gap: 6px; }
+  .sex-btn { flex: 1; padding: 8px 4px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); font-family: inherit; font-size: 12px; cursor: pointer; color: var(--muted); font-weight: 500; transition: all 0.15s; }
+  .sex-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(124,58,237,0.08); }
 </style>
 </head>
 <body>
 <div class="app">
 
   <div class="header">
-    <div>
+    <div style="flex:1; min-width:0;">
       <h1>Glycogen Tracker</h1>
-      <div class="sub">BMR: ~1,940 kcal/day · 95kg · 172cm · 25y</div>
+      <div class="bmr-bar" onclick="toggleBmrCalc()">
+        <span class="bmr-bar-label">BMR</span>
+        <span class="bmr-bar-val" id="bmrBarVal">~1,940 kcal/day</span>
+        <span class="bmr-bar-arrow" id="bmrArrow">▾</span>
+      </div>
     </div>
     <div class="balance-box">
       <div style="display:flex; justify-content:flex-end; margin-bottom:4px;">
@@ -140,6 +172,56 @@
       <div class="balance-val" id="balanceVal">+0 kcal</div>
       <div class="balance-time" id="balanceTime"></div>
     </div>
+  </div>
+
+  <!-- BMR Calculator -->
+  <div class="bmr-calc" id="bmrCalc">
+    <div class="bmr-grid">
+      <div class="bmr-field" style="grid-column: span 2;">
+        <label>SEX</label>
+        <div class="sex-btns">
+          <button class="sex-btn active" id="sex-male" onclick="setSex('male')">♂ Male</button>
+          <button class="sex-btn" id="sex-female" onclick="setSex('female')">♀ Female</button>
+        </div>
+      </div>
+      <div class="bmr-field">
+        <label>AGE (years)</label>
+        <input type="number" id="bmr-age" value="25" min="10" max="100" inputmode="numeric">
+      </div>
+      <div class="bmr-field">
+        <label>WEIGHT (kg)</label>
+        <input type="number" id="bmr-weight" value="95" min="30" max="300" inputmode="decimal">
+      </div>
+      <div class="bmr-field">
+        <label>HEIGHT (cm)</label>
+        <input type="number" id="bmr-height" value="172" min="100" max="250" inputmode="numeric">
+      </div>
+      <div class="bmr-field">
+        <label>ACTIVITY</label>
+        <select id="bmr-activity">
+          <option value="1.2">Sedentary</option>
+          <option value="1.375" selected>Lightly active</option>
+          <option value="1.55">Moderately active</option>
+          <option value="1.725">Very active</option>
+          <option value="1.9">Extra active</option>
+        </select>
+      </div>
+    </div>
+    <div class="bmr-result" id="bmrResult">
+      <div class="bmr-result-row">
+        <span class="bmr-result-label">Basal BMR (Mifflin-St Jeor)</span>
+        <span class="bmr-result-val" id="bmrBase">—</span>
+      </div>
+      <div class="bmr-result-row">
+        <span class="bmr-result-label">TDEE (with activity)</span>
+        <span class="bmr-result-val" id="bmrTdee" style="color:var(--accent)">—</span>
+      </div>
+      <div class="bmr-result-row">
+        <span class="bmr-result-label">Passive drain rate</span>
+        <span class="bmr-result-val" id="bmrRate" style="color:var(--muted); font-size:11px;">—</span>
+      </div>
+    </div>
+    <button class="bmr-apply-btn" onclick="applyBmr()">APPLY & USE THIS BMR</button>
   </div>
 
   <!-- Stats -->
@@ -239,7 +321,9 @@
 
 <script>
 // ── Constants ────────────────────────────────────────────────
-const BMR_PER_MIN = 1940 / 1440; // kcal per minute passive burn
+const BMR_DEFAULT = 1940;
+let BMR_PER_MIN = BMR_DEFAULT / 1440; // kcal per minute passive burn — updated by calculator
+const BMR_STORE_KEY = 'glyco_bmr_settings';
 const KCAL_PER_KG_FAT = 7700;
 const STORE_KEY = 'glyco_v4_logs';
 const RESET_KEY = 'glyco_v4_reset';
@@ -628,6 +712,95 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 2200);
 }
 
+// ── BMR Calculator ───────────────────────────────────────────
+let bmrSex = 'male';
+
+function setSex(s) {
+  bmrSex = s;
+  document.getElementById('sex-male').classList.toggle('active', s === 'male');
+  document.getElementById('sex-female').classList.toggle('active', s === 'female');
+  recalcBmr();
+}
+
+function calcMifflin() {
+  const age    = parseFloat(document.getElementById('bmr-age').value) || 25;
+  const weight = parseFloat(document.getElementById('bmr-weight').value) || 95;
+  const height = parseFloat(document.getElementById('bmr-height').value) || 172;
+  const activity = parseFloat(document.getElementById('bmr-activity').value) || 1.375;
+  // Mifflin-St Jeor
+  const base = bmrSex === 'male'
+    ? (10 * weight) + (6.25 * height) - (5 * age) + 5
+    : (10 * weight) + (6.25 * height) - (5 * age) - 161;
+  const tdee = base * activity;
+  return { base: Math.round(base), tdee: Math.round(tdee) };
+}
+
+function recalcBmr() {
+  const { base, tdee } = calcMifflin();
+  document.getElementById('bmrBase').textContent = base + ' kcal/day';
+  document.getElementById('bmrTdee').textContent = tdee + ' kcal/day';
+  const perMin = (base / 1440).toFixed(3);
+  document.getElementById('bmrRate').textContent = perMin + ' kcal/min';
+}
+
+function applyBmr() {
+  const { base, tdee } = calcMifflin();
+  BMR_PER_MIN = base / 1440;
+  // Save settings
+  const settings = {
+    sex: bmrSex,
+    age: document.getElementById('bmr-age').value,
+    weight: document.getElementById('bmr-weight').value,
+    height: document.getElementById('bmr-height').value,
+    activity: document.getElementById('bmr-activity').value,
+    bmr: base
+  };
+  localStorage.setItem(BMR_STORE_KEY, JSON.stringify(settings));
+  // Update bar
+  document.getElementById('bmrBarVal').textContent = '~' + base.toLocaleString() + ' kcal/day';
+  // Close panel
+  toggleBmrCalc(false);
+  updateBalance();
+  drawChart();
+  showToast('BMR updated: ' + base + ' kcal/day');
+}
+
+function loadBmrSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem(BMR_STORE_KEY));
+    if (!s) return;
+    bmrSex = s.sex || 'male';
+    if (s.age)    document.getElementById('bmr-age').value    = s.age;
+    if (s.weight) document.getElementById('bmr-weight').value = s.weight;
+    if (s.height) document.getElementById('bmr-height').value = s.height;
+    if (s.activity) document.getElementById('bmr-activity').value = s.activity;
+    setSex(bmrSex);
+    if (s.bmr) {
+      BMR_PER_MIN = s.bmr / 1440;
+      document.getElementById('bmrBarVal').textContent = '~' + parseInt(s.bmr).toLocaleString() + ' kcal/day';
+    }
+  } catch {}
+}
+
+function toggleBmrCalc(forceClose) {
+  const panel = document.getElementById('bmrCalc');
+  const arrow = document.getElementById('bmrArrow');
+  const isOpen = panel.classList.contains('open');
+  if (forceClose === false || isOpen) {
+    panel.classList.remove('open');
+    arrow.classList.remove('open');
+  } else {
+    panel.classList.add('open');
+    arrow.classList.add('open');
+    recalcBmr();
+  }
+}
+
+// Live recalc on input change
+['bmr-age','bmr-weight','bmr-height','bmr-activity'].forEach(id => {
+  document.getElementById(id).addEventListener('input', recalcBmr);
+});
+
 // ── Theme ─────────────────────────────────────────────────────
 function toggleTheme() {
   const isLight = document.body.classList.toggle('light');
@@ -646,6 +819,7 @@ function loadTheme() {
 
 // ── Init ──────────────────────────────────────────────────────
 loadTheme();
+loadBmrSettings();
 loadLogs();
 setDefaultInputs();
 updateBalance();
