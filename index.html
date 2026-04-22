@@ -126,13 +126,13 @@
 
   <div class="header">
     <div>
-      <div style="display:flex; align-items:center; gap:10px;">
-        <h1>Glycogen Tracker</h1>
-        <button id="themeBtn" onclick="toggleTheme()" style="background:none; border:1px solid var(--border); border-radius:20px; padding:3px 9px; font-family:inherit; font-size:13px; color:var(--muted); cursor:pointer;">🌙</button>
-      </div>
+      <h1>Glycogen Tracker</h1>
       <div class="sub">BMR: ~1,940 kcal/day · 95kg · 172cm · 25y</div>
     </div>
     <div class="balance-box">
+      <div style="display:flex; justify-content:flex-end; margin-bottom:4px;">
+        <button id="themeBtn" onclick="toggleTheme()" style="background:none; border:1px solid var(--border); border-radius:20px; padding:2px 8px; font-family:inherit; font-size:12px; color:var(--muted); cursor:pointer;">🌙</button>
+      </div>
       <div class="balance-label">GLYCOGEN BALANCE</div>
       <div class="balance-val" id="balanceVal">+0 kcal</div>
       <div class="balance-time" id="balanceTime"></div>
