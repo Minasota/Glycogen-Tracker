@@ -1,5 +1,5 @@
-const CACHE = 'glycogen-v2';
-const ASSETS = ['./index.html', './manifest.json', './icon-192.png', './icon-512.png'];
+const CACHE = 'glycogen-v3';
+const ASSETS = ['./manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -16,19 +16,15 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Network first for HTML — always get latest index.html
-  if (e.request.url.endsWith('.html') || e.request.url.endsWith('/')) {
+  // Always fetch index.html fresh from network — never cache it
+  if (e.request.mode === 'navigate' || e.request.url.endsWith('index.html') || e.request.url.endsWith('/')) {
     e.respondWith(
-      fetch(e.request).then(res => {
-        const clone = res.clone();
-        caches.open(CACHE).then(c => c.put(e.request, clone));
-        return res;
-      }).catch(() => caches.match(e.request))
+      fetch(e.request, { cache: 'no-store' }).catch(() => caches.match('./index.html'))
     );
-  } else {
-    // Cache first for other assets
-    e.respondWith(
-      caches.match(e.request).then(cached => cached || fetch(e.request))
-    );
+    return;
   }
+  // Cache first for icons/manifest
+  e.respondWith(
+    caches.match(e.request).then(cached => cached || fetch(e.request))
+  );
 });
