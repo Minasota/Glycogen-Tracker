@@ -197,31 +197,69 @@
         <input type="number" id="bmr-height" value="172" min="100" max="250" inputmode="numeric">
       </div>
       <div class="bmr-field">
-        <label>ACTIVITY</label>
+        <label>AVG DAILY STEPS</label>
+        <input type="number" id="bmr-steps" value="5000" min="0" max="50000" inputmode="numeric">
+      </div>
+      <div class="bmr-field" style="grid-column: span 2;">
+        <label>GENERAL ACTIVITY LEVEL <span style="color:var(--muted);font-weight:400;font-size:10px;">(excluding logged exercise)</span></label>
         <select id="bmr-activity">
-          <option value="1.2">Sedentary</option>
-          <option value="1.375" selected>Lightly active</option>
-          <option value="1.55">Moderately active</option>
-          <option value="1.725">Very active</option>
-          <option value="1.9">Extra active</option>
+          <option value="1.2">Sedentary (desk job, minimal movement)</option>
+          <option value="1.375" selected>Lightly active (light daily activity)</option>
+          <option value="1.55">Moderately active (physical job or regular activity)</option>
+          <option value="1.725">Very active (hard training most days)</option>
         </select>
       </div>
     </div>
+
+    <!-- Results -->
     <div class="bmr-result" id="bmrResult">
       <div class="bmr-result-row">
         <span class="bmr-result-label">Basal BMR (Mifflin-St Jeor)</span>
         <span class="bmr-result-val" id="bmrBase">—</span>
       </div>
       <div class="bmr-result-row">
-        <span class="bmr-result-label">TDEE (with activity)</span>
-        <span class="bmr-result-val" id="bmrTdee" style="color:var(--accent)">—</span>
+        <span class="bmr-result-label">Steps contribution (~0.04 kcal/step)</span>
+        <span class="bmr-result-val" id="bmrStepsKcal" style="color:var(--exercise)">—</span>
       </div>
       <div class="bmr-result-row">
-        <span class="bmr-result-label">Passive drain rate</span>
-        <span class="bmr-result-val" id="bmrRate" style="color:var(--muted); font-size:11px;">—</span>
+        <span class="bmr-result-label">TDEE (activity × BMR + steps)</span>
+        <span class="bmr-result-val" id="bmrTdee" style="color:var(--accent)">—</span>
       </div>
     </div>
-    <button class="bmr-apply-btn" onclick="applyBmr()">APPLY & USE THIS BMR</button>
+
+    <!-- Drain mode -->
+    <div style="margin-bottom:12px;">
+      <div style="font-size:11px; color:var(--muted); font-weight:600; letter-spacing:0.05em; margin-bottom:8px; text-transform:uppercase;">PASSIVE DRAIN MODE</div>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+
+        <label class="drain-option" id="drain-opt-basal" onclick="setDrainMode('basal')" style="cursor:pointer; padding:10px 12px; border-radius:8px; border:2px solid var(--accent); background:rgba(124,58,237,0.07); display:flex; flex-direction:column; gap:3px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:13px; font-weight:600; color:var(--text)">🔬 Basal BMR only</span>
+            <span id="drain-basal-val" style="font-size:12px; font-family:'DM Mono',monospace; color:var(--bmr)">—</span>
+          </div>
+          <span style="font-size:11px; color:var(--muted)">Passive drain = resting metabolism only. Log each exercise session manually to track them as separate events on the graph.</span>
+        </label>
+
+        <label class="drain-option" id="drain-opt-tdee" onclick="setDrainMode('tdee')" style="cursor:pointer; padding:10px 12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); display:flex; flex-direction:column; gap:3px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:13px; font-weight:600; color:var(--text)">⚡ Full TDEE</span>
+            <span id="drain-tdee-val" style="font-size:12px; font-family:'DM Mono',monospace; color:var(--accent)">—</span>
+          </div>
+          <span style="font-size:11px; color:var(--muted)">Passive drain = total daily energy including activity & steps. No need to log exercise separately — it's already baked in.</span>
+        </label>
+
+        <label class="drain-option" id="drain-opt-steps" onclick="setDrainMode('steps')" style="cursor:pointer; padding:10px 12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); display:flex; flex-direction:column; gap:3px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:13px; font-weight:600; color:var(--text)">👟 BMR + Steps</span>
+            <span id="drain-steps-val" style="font-size:12px; font-family:'DM Mono',monospace; color:var(--exercise)">—</span>
+          </div>
+          <span style="font-size:11px; color:var(--muted)">Passive drain = BMR + your daily step goal. Log swim/gym sessions manually on top of this.</span>
+        </label>
+
+      </div>
+    </div>
+
+    <button class="bmr-apply-btn" onclick="applyBmr()">APPLY & USE THIS DRAIN RATE</button>
   </div>
 
   <!-- Stats -->
@@ -714,6 +752,7 @@ function showToast(msg) {
 
 // ── BMR Calculator ───────────────────────────────────────────
 let bmrSex = 'male';
+let drainMode = 'basal'; // 'basal' | 'tdee' | 'steps'
 
 function setSex(s) {
   bmrSex = s;
@@ -722,47 +761,84 @@ function setSex(s) {
   recalcBmr();
 }
 
+function setDrainMode(mode) {
+  drainMode = mode;
+  ['basal','tdee','steps'].forEach(m => {
+    const el = document.getElementById('drain-opt-' + m);
+    if (m === mode) {
+      el.style.border = '2px solid var(--accent)';
+      el.style.background = 'rgba(124,58,237,0.07)';
+    } else {
+      el.style.border = '1px solid var(--border)';
+      el.style.background = 'var(--bg)';
+    }
+  });
+}
+
+function stepsToKcal(steps) {
+  // ~0.04 kcal per step (varies by weight but reasonable average)
+  return Math.round(steps * 0.04);
+}
+
 function calcMifflin() {
-  const age    = parseFloat(document.getElementById('bmr-age').value) || 25;
-  const weight = parseFloat(document.getElementById('bmr-weight').value) || 95;
-  const height = parseFloat(document.getElementById('bmr-height').value) || 172;
+  const age      = parseFloat(document.getElementById('bmr-age').value)      || 25;
+  const weight   = parseFloat(document.getElementById('bmr-weight').value)   || 95;
+  const height   = parseFloat(document.getElementById('bmr-height').value)   || 172;
   const activity = parseFloat(document.getElementById('bmr-activity').value) || 1.375;
-  // Mifflin-St Jeor
+  const steps    = parseFloat(document.getElementById('bmr-steps').value)    || 0;
+
   const base = bmrSex === 'male'
     ? (10 * weight) + (6.25 * height) - (5 * age) + 5
     : (10 * weight) + (6.25 * height) - (5 * age) - 161;
-  const tdee = base * activity;
-  return { base: Math.round(base), tdee: Math.round(tdee) };
+
+  const stepsKcal = stepsToKcal(steps);
+  const tdee = Math.round(base * activity) + stepsKcal;
+  const basalPlusSteps = Math.round(base) + stepsKcal;
+
+  return { base: Math.round(base), stepsKcal, tdee, basalPlusSteps };
 }
 
 function recalcBmr() {
-  const { base, tdee } = calcMifflin();
-  document.getElementById('bmrBase').textContent = base + ' kcal/day';
-  document.getElementById('bmrTdee').textContent = tdee + ' kcal/day';
-  const perMin = (base / 1440).toFixed(3);
-  document.getElementById('bmrRate').textContent = perMin + ' kcal/min';
+  const { base, stepsKcal, tdee, basalPlusSteps } = calcMifflin();
+  document.getElementById('bmrBase').textContent       = base + ' kcal/day';
+  document.getElementById('bmrStepsKcal').textContent  = '+' + stepsKcal + ' kcal/day';
+  document.getElementById('bmrTdee').textContent       = tdee + ' kcal/day';
+  document.getElementById('drain-basal-val').textContent  = base + ' kcal/day';
+  document.getElementById('drain-tdee-val').textContent   = tdee + ' kcal/day';
+  document.getElementById('drain-steps-val').textContent  = basalPlusSteps + ' kcal/day';
+}
+
+function getActiveDrainKcal() {
+  const { base, tdee, basalPlusSteps } = calcMifflin();
+  if (drainMode === 'tdee')  return tdee;
+  if (drainMode === 'steps') return basalPlusSteps;
+  return base;
 }
 
 function applyBmr() {
-  const { base, tdee } = calcMifflin();
-  BMR_PER_MIN = base / 1440;
-  // Save settings
+  const drainKcal = getActiveDrainKcal();
+  const { base, tdee, basalPlusSteps } = calcMifflin();
+  BMR_PER_MIN = drainKcal / 1440;
+
+  const modeLabel = drainMode === 'tdee' ? 'Full TDEE' : drainMode === 'steps' ? 'BMR + Steps' : 'Basal BMR';
+
   const settings = {
-    sex: bmrSex,
-    age: document.getElementById('bmr-age').value,
-    weight: document.getElementById('bmr-weight').value,
-    height: document.getElementById('bmr-height').value,
+    sex:      bmrSex,
+    age:      document.getElementById('bmr-age').value,
+    weight:   document.getElementById('bmr-weight').value,
+    height:   document.getElementById('bmr-height').value,
     activity: document.getElementById('bmr-activity').value,
-    bmr: base
+    steps:    document.getElementById('bmr-steps').value,
+    drainMode,
+    drainKcal
   };
   localStorage.setItem(BMR_STORE_KEY, JSON.stringify(settings));
-  // Update bar
-  document.getElementById('bmrBarVal').textContent = '~' + base.toLocaleString() + ' kcal/day';
-  // Close panel
+
+  document.getElementById('bmrBarVal').textContent = modeLabel + ': ~' + drainKcal.toLocaleString() + ' kcal/day';
   toggleBmrCalc(false);
   updateBalance();
   drawChart();
-  showToast('BMR updated: ' + base + ' kcal/day');
+  showToast(modeLabel + ' applied: ' + drainKcal + ' kcal/day');
 }
 
 function loadBmrSettings() {
@@ -770,14 +846,17 @@ function loadBmrSettings() {
     const s = JSON.parse(localStorage.getItem(BMR_STORE_KEY));
     if (!s) return;
     bmrSex = s.sex || 'male';
-    if (s.age)    document.getElementById('bmr-age').value    = s.age;
-    if (s.weight) document.getElementById('bmr-weight').value = s.weight;
-    if (s.height) document.getElementById('bmr-height').value = s.height;
+    if (s.age)      document.getElementById('bmr-age').value      = s.age;
+    if (s.weight)   document.getElementById('bmr-weight').value   = s.weight;
+    if (s.height)   document.getElementById('bmr-height').value   = s.height;
     if (s.activity) document.getElementById('bmr-activity').value = s.activity;
+    if (s.steps)    document.getElementById('bmr-steps').value    = s.steps;
+    if (s.drainMode) { drainMode = s.drainMode; setDrainMode(drainMode); }
     setSex(bmrSex);
-    if (s.bmr) {
-      BMR_PER_MIN = s.bmr / 1440;
-      document.getElementById('bmrBarVal').textContent = '~' + parseInt(s.bmr).toLocaleString() + ' kcal/day';
+    if (s.drainKcal) {
+      BMR_PER_MIN = s.drainKcal / 1440;
+      const modeLabel = drainMode === 'tdee' ? 'Full TDEE' : drainMode === 'steps' ? 'BMR + Steps' : 'Basal BMR';
+      document.getElementById('bmrBarVal').textContent = modeLabel + ': ~' + parseInt(s.drainKcal).toLocaleString() + ' kcal/day';
     }
   } catch {}
 }
@@ -797,7 +876,7 @@ function toggleBmrCalc(forceClose) {
 }
 
 // Live recalc on input change
-['bmr-age','bmr-weight','bmr-height','bmr-activity'].forEach(id => {
+['bmr-age','bmr-weight','bmr-height','bmr-activity','bmr-steps'].forEach(id => {
   document.getElementById(id).addEventListener('input', recalcBmr);
 });
 
