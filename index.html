@@ -375,6 +375,7 @@
       <div class="stat-label" id="balanceCardLabel">GLYCOGEN BALANCE</div>
       <div class="stat-val" id="balanceVal" style="margin-top:3px;">0 kcal</div>
       <div class="stat-sub" id="balanceTime"></div>
+      <div id="toZeroHint" style="display:none; font-size:10px; color:var(--deficit); margin-top:4px; font-weight:500;"></div>
     </div>
   </div>
   <!-- hidden elements kept for JS compatibility -->
@@ -394,12 +395,13 @@
     <canvas id="chart" height="260"></canvas>
   </div>
 
-  <div class="legend">
+  <div class="legend" id="chartLegend">
     <div class="legend-item"><div class="dot" style="background:#22c55e"></div>Food</div>
     <div class="legend-item"><div class="dot" style="background:#f97316"></div>Passive BMR</div>
     <div class="legend-item"><div class="dot" style="background:#3b82f6"></div>Exercise</div>
     <div class="legend-item"><div class="dot" style="background:#fbbf24"></div>Now</div>
-    <div class="legend-item"><div class="dot" style="background:#f43f5e"></div>Deficit zone</div>
+    <div class="legend-item" id="legend-deficit"><div class="dot" style="background:#f43f5e"></div>Deficit zone</div>
+    <div class="legend-item" id="legend-fatzone"><div class="dot" style="background:#f97316; opacity:0.6;"></div>Fat storage zone</div>
   </div>
 
   <div class="tabs">
@@ -531,92 +533,131 @@ function sumUpTo(sorted, toMs) {
 }
 
 // ── Core calculation ─────────────────────────────────────────
-// Glycogen mode: balance floors at 0; deficit accumulates separately
-// Calorie mode: raw balance (positive = surplus, negative = deficit)
-function calcAt(toMs) {
-  rebuildIndex();
-  const foodGained = sumUpTo(_foodSorted, toMs);
-  const exBurned   = sumUpTo(_exSorted,   toMs);
-  const startMs = getStartMs();
-  const elapsedMins = Math.max(0, (toMs - startMs) / 60000);
-  const bmrBurned = elapsedMins * BMR_PER_MIN;
-  const raw = foodGained - exBurned - bmrBurned;
-
-  if (trackerMode === 'calorie') {
-    return { balance: raw, raw, currentDeficit: 0, deficitBMR: 0, deficitEx: 0 };
-  }
-
-  const balance = Math.max(0, raw);
-  const currentDeficit = Math.max(0, -raw);
-  const totalBurn = bmrBurned + exBurned;
-  const deficitBMR = totalBurn > 0 ? currentDeficit * (bmrBurned / totalBurn) : currentDeficit;
-  const deficitEx  = totalBurn > 0 ? currentDeficit * (exBurned  / totalBurn) : 0;
-  return { balance, raw, currentDeficit, deficitBMR, deficitEx };
+// Glycogen max is estimated from lean body mass
+// ~15g glycogen per kg lean mass (muscles + liver)
+// kcal = grams × 4
+function getMaxGlycogen() {
+  try {
+    const s = JSON.parse(localStorage.getItem('glyco_bmr_settings'));
+    if (!s) return 2000;
+    const weight = parseFloat(s.weight) || 95;
+    const age    = parseFloat(s.age)    || 25;
+    const height = parseFloat(s.height) || 172;
+    const sex    = s.sex || 'male';
+    // Estimate body fat % using BMI-based formula (Deurenberg)
+    const bmi = weight / ((height / 100) ** 2);
+    const bfPct = sex === 'male'
+      ? (1.20 * bmi) + (0.23 * age) - 16.2
+      : (1.20 * bmi) + (0.23 * age) - 5.4;
+    const fatKg  = weight * Math.max(0.05, Math.min(0.5, bfPct / 100));
+    const leanKg = weight - fatKg;
+    // Muscle glycogen ~300-500g, liver ~80-100g, ~15g/kg lean mass total
+    const glycoGrams = leanKg * 15;
+    return Math.round(glycoGrams * 4); // 4 kcal per gram
+  } catch { return 2000; }
 }
 
-// ── Cumulative deficit — cached, only recomputes when logs change ──
-let _deficitCache = null;  // { value, computedAt, logHash }
-
-function logHash() {
-  // Fast fingerprint: count + sum of all timestamps
-  return logs.length + '|' + logs.reduce((a, l) => a + l.ts, 0);
-}
-
-function computeCumulativeDeficit() {
-  const now = nowMs();
-  const startMs = getStartMs();
-  if (startMs >= now) return 0;
-
-  const hash = logHash() + '|' + Math.floor(now / 300000); // invalidate every 5 min
-  if (_deficitCache && _deficitCache.hash === hash) return _deficitCache.value;
-
+// Simulate glycogen step by step through events
+// Returns { balance, totalOverfill, totalDeficitKcal }
+// balance: current glycogen (0 to maxGlyco)
+// totalOverfill: cumulative kcal eaten beyond max (→ fat gain)
+// totalDeficitKcal: cumulative kcal of drain while at zero (→ fat burned)
+function simulateGlycogen(toMs) {
   rebuildIndex();
+  const startMs = getStartMs();
+  const maxGlyco = getMaxGlycogen();
+  if (toMs <= startMs) return { balance: 0, overfill: 0, deficitKcal: 0, maxGlyco };
 
-  // Walk through events chronologically — only O(n log n) not O(n²)
-  // Build timeline of events: each food/ex entry + BMR ticks between them
   const events = [
-    ..._foodSorted.map(e => ({ ts: e.ts, foodDelta: e.kcal, exDelta: 0 })),
-    ..._exSorted.map(e => ({ ts: e.ts, foodDelta: 0, exDelta: e.kcal })),
+    ..._foodSorted.filter(e => e.ts <= toMs).map(e => ({ ts: e.ts, type: 'food', kcal: e.kcal })),
+    ..._exSorted.filter(e => e.ts <= toMs).map(e => ({ ts: e.ts, type: 'ex', kcal: e.kcal })),
   ].sort((a, b) => a.ts - b.ts);
 
-  let totalFood = 0, totalEx = 0, totalDeficit = 0;
+  let balance = 0;
+  let totalOverfill = 0;
+  let totalDeficitKcal = 0;
   let prevTs = startMs;
 
-  const processInterval = (fromTs, toTs) => {
-    const bmr = ((toTs - fromTs) / 60000) * BMR_PER_MIN;
-    const rawBefore = totalFood - totalEx - ((fromTs - startMs) / 60000) * BMR_PER_MIN;
-    const rawAfter  = totalFood - totalEx - ((toTs   - startMs) / 60000) * BMR_PER_MIN;
-    if (rawAfter < 0) {
-      if (rawBefore <= 0) {
-        totalDeficit += bmr; // fully in deficit
-      } else {
-        // Crossed zero — only count the portion below zero
-        const fracInDeficit = Math.abs(rawAfter) / (rawBefore + Math.abs(rawAfter));
-        totalDeficit += bmr * fracInDeficit;
-      }
+  const drainInterval = (fromTs, toTs) => {
+    const mins = Math.max(0, (toTs - fromTs) / 60000);
+    const drain = mins * BMR_PER_MIN;
+    if (balance >= drain) {
+      balance -= drain;
+    } else {
+      // Some or all drain goes into deficit
+      totalDeficitKcal += (drain - balance);
+      balance = 0;
     }
   };
 
   for (const ev of events) {
-    if (ev.ts > now) break;
-    processInterval(prevTs, ev.ts);
+    drainInterval(prevTs, ev.ts);
     prevTs = ev.ts;
-    totalFood += ev.foodDelta;
-    totalEx   += ev.exDelta;
+    if (ev.type === 'food') {
+      const newBal = balance + ev.kcal;
+      if (newBal > maxGlyco) {
+        totalOverfill += newBal - maxGlyco;
+        balance = maxGlyco;
+      } else {
+        balance = newBal;
+      }
+    } else {
+      balance = Math.max(0, balance - ev.kcal);
+      // Exercise beyond current balance also counts as deficit
+      if (ev.kcal > balance + ev.kcal) {
+        totalDeficitKcal += Math.max(0, ev.kcal - (balance + ev.kcal));
+      }
+    }
   }
-  processInterval(prevTs, now);
+  drainInterval(prevTs, toMs);
 
-  _deficitCache = { hash, value: totalDeficit };
-  return totalDeficit;
+  return { balance, overfill: totalOverfill, deficitKcal: totalDeficitKcal, maxGlyco };
+}
+
+function calcAt(toMs) {
+  if (trackerMode === 'calorie') {
+    rebuildIndex();
+    const foodGained = sumUpTo(_foodSorted, toMs);
+    const exBurned   = sumUpTo(_exSorted,   toMs);
+    const startMs    = getStartMs();
+    const bmrBurned  = Math.max(0, (toMs - startMs) / 60000) * BMR_PER_MIN;
+    const raw = foodGained - exBurned - bmrBurned;
+    return { balance: raw, raw, currentDeficit: 0, deficitKcal: 0, overfill: 0, maxGlyco: getMaxGlycogen() };
+  }
+
+  const { balance, overfill, deficitKcal, maxGlyco } = simulateGlycogen(toMs);
+  // Net fat balance = deficit burned - overfill gained
+  const netFatKcal = deficitKcal - overfill;
+  return { balance, raw: balance, currentDeficit: deficitKcal, deficitKcal, overfill, netFatKcal, maxGlyco };
+}
+
+// ── Net fat balance — cached ──────────────────────────────────
+let _simCache = null;
+
+function logHash() {
+  return logs.length + '|' + logs.reduce((a, l) => a + l.ts, 0);
+}
+
+function getCachedSim() {
+  const now = nowMs();
+  const hash = logHash() + '|' + Math.floor(now / 300000);
+  if (_simCache && _simCache.hash === hash) return _simCache.result;
+  const result = simulateGlycogen(now);
+  _simCache = { hash, result };
+  return result;
+}
+
+function computeCumulativeDeficit() {
+  if (trackerMode === 'calorie') return 0;
+  const { netFatKcal } = getCachedSim();
+  return netFatKcal; // positive = net fat burned, negative = net fat gained
 }
 
 function updateCumulativeDeficit() {
   if (trackerMode === 'calorie') return;
-  const computed = computeCumulativeDeficit();
-  if (computed > cumulativeDeficit) {
-    cumulativeDeficit = computed;
-    localStorage.setItem(DEFICIT_KEY, String(cumulativeDeficit));
-  }
+  const net = computeCumulativeDeficit();
+  cumulativeDeficit = net;
+  localStorage.setItem(DEFICIT_KEY, String(cumulativeDeficit));
 }
 
 function getStartMs() {
@@ -647,26 +688,55 @@ function updateBalance() {
   } else {
     el.style.color = balance > 2000 ? '#f97316' : balance > 500 ? '#a78bfa' : balance > 0 ? '#22c55e' : '#fbbf24';
   }
+  // Contextual hint on balance card
+  const hintEl = document.getElementById('toZeroHint');
+  if (hintEl && trackerMode === 'glycogen') {
+    const mg = getMaxGlycogen();
+    if (balance === 0) {
+      hintEl.style.display = 'block';
+      hintEl.style.color = 'var(--deficit)';
+      hintEl.textContent = '🔴 Glycogen empty — burning fat';
+    } else if (balance >= mg) {
+      hintEl.style.display = 'block';
+      hintEl.style.color = '#f97316';
+      hintEl.textContent = '🟠 Max glycogen — excess stored as fat';
+    } else if (balance >= mg * 0.85) {
+      hintEl.style.display = 'block';
+      hintEl.style.color = '#f97316';
+      hintEl.textContent = '⚠️ Near max — ' + Math.round(mg - balance) + ' kcal until fat storage';
+    } else {
+      hintEl.style.display = 'none';
+    }
+  }
   document.getElementById('balanceTime').textContent = fmtTime(now);
   const balLabel = document.querySelector('#balanceCardLabel');
   if (balLabel) balLabel.textContent = trackerMode === 'calorie' ? 'CALORIE BALANCE' : 'GLYCOGEN BALANCE';
   const titleEl = document.getElementById('appTitle');
   if (titleEl) titleEl.textContent = trackerMode === 'calorie' ? 'Calo Tracker' : 'Glyco Tracker';
 
-  // Deficit display — kcal always primary, kg/lb toggle is secondary
-  const lossKcal = Math.round(cumulativeDeficit);
-  const lossKg   = (cumulativeDeficit / KCAL_PER_KG_FAT).toFixed(3);
-  const lossLb   = (cumulativeDeficit / 3500).toFixed(3);
+  // Net fat balance display
+  const netKcal  = Math.round(cumulativeDeficit); // positive = burned, negative = gained
+  const absKcal  = Math.abs(netKcal);
+  const netKg    = (Math.abs(cumulativeDeficit) / KCAL_PER_KG_FAT).toFixed(3);
+  const netLb    = (Math.abs(cumulativeDeficit) / 3500).toFixed(3);
+  const isGain   = netKcal < 0;
 
-  if (showKg) {
-    document.getElementById('totalLossVal').textContent = useImperial ? lossLb + ' lb' : lossKg + ' kg';
-    document.getElementById('totalLossSub').textContent = 'estimated fat burned';
-    document.getElementById('unitToggle').textContent = '→ show in kcal';
-  } else {
-    document.getElementById('totalLossVal').textContent = lossKcal + ' kcal';
-    document.getElementById('totalLossSub').textContent = 'burned below zero';
-    document.getElementById('unitToggle').textContent = useImperial ? '→ show in lb' : '→ show in kg';
+  const labelEl  = document.getElementById('deficitCardLabel');
+  const valEl    = document.getElementById('totalLossVal');
+  const subEl    = document.getElementById('totalLossSub');
+  const togEl    = document.getElementById('unitToggle');
+
+  if (labelEl) labelEl.textContent = isGain ? 'EXCESS CALORIES GAINED' : 'DEFICIT CALORIES BURNED';
+  if (valEl) {
+    if (showKg) {
+      valEl.textContent = (isGain ? '+' : '') + (useImperial ? netLb + ' lb' : netKg + ' kg');
+    } else {
+      valEl.textContent = (isGain ? '+' : '') + absKcal + ' kcal';
+    }
+    valEl.style.color = isGain ? '#f97316' : '#f43f5e';
   }
+  if (subEl) subEl.textContent = isGain ? 'stored as fat' : 'net fat burned';
+  if (togEl) togEl.textContent = showKg ? '→ show in kcal' : (useImperial ? '→ show in lb' : '→ show in kg');
 
   // Breakdown
   document.getElementById('bmrDeficit').textContent = Math.round(deficitBMR) + ' kcal';
@@ -746,15 +816,17 @@ function drawChart() {
   }
   samples.push({ ms: endMs, val: calcAt(endMs).balance, raw: calcAt(endMs).raw });
 
+  const maxGlyco = getMaxGlycogen();
   const allVals = samples.map(s => s.val);
-  const maxVal = Math.max(...allVals, 200);
+  const maxVal = trackerMode === 'glycogen' ? Math.max(maxGlyco * 1.05, 200) : Math.max(...allVals, 200);
   const minVal = trackerMode === 'calorie' ? Math.min(...allVals, -200) : 0;
   const yRange = maxVal - minVal || 400;
-  const yMax = maxVal + yRange * 0.1;
-  const yMin = minVal - yRange * 0.1;
+  const yMax = maxVal + yRange * 0.05;
+  const yMin = minVal - yRange * 0.05;
   const ySpan = yMax - yMin;
   const yP = v => PAD.top + CH - ((v - yMin) / ySpan) * CH;
   const zeroY = yP(0);
+  const maxGlycoY = yP(maxGlyco);
 
   // Grid – time axis
   ctx.font = `10px 'DM Mono', 'Courier New', monospace`;
@@ -801,6 +873,21 @@ function drawChart() {
       ctx.setLineDash([]);
       dayT = new Date(dayT.getTime() + 86400000);
     }
+  }
+
+  // Max glycogen zone (overfill = fat storage)
+  if (trackerMode === 'glycogen') {
+    ctx.fillStyle = 'rgba(249,115,22,0.07)';
+    ctx.fillRect(PAD.left, PAD.top, CW, Math.max(0, maxGlycoY - PAD.top));
+    ctx.strokeStyle = 'rgba(249,115,22,0.5)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(PAD.left, maxGlycoY); ctx.lineTo(PAD.left + CW, maxGlycoY); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(249,115,22,0.8)';
+    ctx.font = `bold 8px 'DM Mono', monospace`;
+    ctx.textAlign = 'right';
+    ctx.fillText('MAX GLYCO — FAT STORAGE ZONE', PAD.left + CW - 2, maxGlycoY - 3);
   }
 
   // Zero line
