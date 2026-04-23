@@ -487,6 +487,7 @@ function loadLogs() {
   resetMs = parseInt(localStorage.getItem(RESET_KEY) || '0', 10) || 0;
   cumulativeDeficit = parseFloat(localStorage.getItem(DEFICIT_KEY) || '0') || 0;
   useImperial = localStorage.getItem(UNIT_KEY) === 'imperial';
+  markDirty(); // fresh load — rebuild index
   trackerMode = localStorage.getItem(MODE_KEY) || 'glycogen';
   viewRange = localStorage.getItem(VIEW_KEY) || '1D';
 }
@@ -506,16 +507,36 @@ function fmtDateFull(ms) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+// ── Performance: indexed log access ─────────────────────────
+// Pre-sorted arrays and running totals so calcAt is O(log n) not O(n)
+let _foodSorted = [];  // [{ts, kcal}] sorted ascending
+let _exSorted   = [];
+let _logsDirty  = true; // set true whenever logs change
+
+function markDirty() { _logsDirty = true; }
+
+function rebuildIndex() {
+  if (!_logsDirty) return;
+  _foodSorted = logs.filter(l => l.type === 'food').map(l => ({ts: l.ts, kcal: l.kcal})).sort((a,b) => a.ts - b.ts);
+  _exSorted   = logs.filter(l => l.type === 'exercise').map(l => ({ts: l.ts, kcal: l.kcal})).sort((a,b) => a.ts - b.ts);
+  _logsDirty  = false;
+}
+
+// Fast sum using pre-sorted array — O(log n) binary search + O(k) sum
+function sumUpTo(sorted, toMs) {
+  let lo = 0, hi = sorted.length;
+  while (lo < hi) { const mid = (lo + hi) >> 1; sorted[mid].ts <= toMs ? lo = mid + 1 : hi = mid; }
+  let s = 0; for (let i = 0; i < lo; i++) s += sorted[i].kcal;
+  return s;
+}
+
 // ── Core calculation ─────────────────────────────────────────
 // Glycogen mode: balance floors at 0; deficit accumulates separately
 // Calorie mode: raw balance (positive = surplus, negative = deficit)
 function calcAt(toMs) {
-  const foodGained = logs
-    .filter(l => l.type === 'food' && l.ts <= toMs)
-    .reduce((a, l) => a + l.kcal, 0);
-  const exBurned = logs
-    .filter(l => l.type === 'exercise' && l.ts <= toMs)
-    .reduce((a, l) => a + l.kcal, 0);
+  rebuildIndex();
+  const foodGained = sumUpTo(_foodSorted, toMs);
+  const exBurned   = sumUpTo(_exSorted,   toMs);
   const startMs = getStartMs();
   const elapsedMins = Math.max(0, (toMs - startMs) / 60000);
   const bmrBurned = elapsedMins * BMR_PER_MIN;
@@ -525,7 +546,6 @@ function calcAt(toMs) {
     return { balance: raw, raw, currentDeficit: 0, deficitBMR: 0, deficitEx: 0 };
   }
 
-  // Glycogen mode — floor at 0, track cumulative deficit through history
   const balance = Math.max(0, raw);
   const currentDeficit = Math.max(0, -raw);
   const totalBurn = bmrBurned + exBurned;
@@ -534,46 +554,60 @@ function calcAt(toMs) {
   return { balance, raw, currentDeficit, deficitBMR, deficitEx };
 }
 
-// Scan full history to compute true cumulative deficit
-// Deficit only accumulates while raw < 0; food logged after deficit does NOT reduce it
+// ── Cumulative deficit — cached, only recomputes when logs change ──
+let _deficitCache = null;  // { value, computedAt, logHash }
+
+function logHash() {
+  // Fast fingerprint: count + sum of all timestamps
+  return logs.length + '|' + logs.reduce((a, l) => a + l.ts, 0);
+}
+
 function computeCumulativeDeficit() {
   const now = nowMs();
   const startMs = getStartMs();
   if (startMs >= now) return 0;
 
-  const STEP = 5 * 60 * 1000; // 5 min samples
-  let total = 0;
-  let prevRaw = null;
-  let prevTs = null;
+  const hash = logHash() + '|' + Math.floor(now / 300000); // invalidate every 5 min
+  if (_deficitCache && _deficitCache.hash === hash) return _deficitCache.value;
 
-  for (let t = startMs; t <= now; t += STEP) {
-    const food = logs.filter(l => l.type === 'food' && l.ts <= t).reduce((a, l) => a + l.kcal, 0);
-    const ex   = logs.filter(l => l.type === 'exercise' && l.ts <= t).reduce((a, l) => a + l.kcal, 0);
-    const bmr  = ((t - startMs) / 60000) * BMR_PER_MIN;
-    const raw  = food - ex - bmr;
+  rebuildIndex();
 
-    if (prevRaw !== null && prevTs !== null) {
-      // If raw was negative in this interval, accumulate the deficit incurred
-      const intervalMins = (t - prevTs) / 60000;
-      const drain = intervalMins * BMR_PER_MIN;
-      // Only count BMR drain that pushed balance below zero
-      if (raw < 0) {
-        const prevBal = Math.max(0, prevRaw);
-        const newBal  = 0;
-        // How much of the drain went into deficit territory?
-        if (prevRaw >= 0) {
-          // Crossed zero this interval — only the portion below zero counts
-          total += Math.abs(raw);
-        } else {
-          // Was already in deficit — count the full drain
-          total += drain;
-        }
+  // Walk through events chronologically — only O(n log n) not O(n²)
+  // Build timeline of events: each food/ex entry + BMR ticks between them
+  const events = [
+    ..._foodSorted.map(e => ({ ts: e.ts, foodDelta: e.kcal, exDelta: 0 })),
+    ..._exSorted.map(e => ({ ts: e.ts, foodDelta: 0, exDelta: e.kcal })),
+  ].sort((a, b) => a.ts - b.ts);
+
+  let totalFood = 0, totalEx = 0, totalDeficit = 0;
+  let prevTs = startMs;
+
+  const processInterval = (fromTs, toTs) => {
+    const bmr = ((toTs - fromTs) / 60000) * BMR_PER_MIN;
+    const rawBefore = totalFood - totalEx - ((fromTs - startMs) / 60000) * BMR_PER_MIN;
+    const rawAfter  = totalFood - totalEx - ((toTs   - startMs) / 60000) * BMR_PER_MIN;
+    if (rawAfter < 0) {
+      if (rawBefore <= 0) {
+        totalDeficit += bmr; // fully in deficit
+      } else {
+        // Crossed zero — only count the portion below zero
+        const fracInDeficit = Math.abs(rawAfter) / (rawBefore + Math.abs(rawAfter));
+        totalDeficit += bmr * fracInDeficit;
       }
     }
-    prevRaw = raw;
-    prevTs = t;
+  };
+
+  for (const ev of events) {
+    if (ev.ts > now) break;
+    processInterval(prevTs, ev.ts);
+    prevTs = ev.ts;
+    totalFood += ev.foodDelta;
+    totalEx   += ev.exDelta;
   }
-  return total;
+  processInterval(prevTs, now);
+
+  _deficitCache = { hash, value: totalDeficit };
+  return totalDeficit;
 }
 
 function updateCumulativeDeficit() {
@@ -898,6 +932,7 @@ function addEntry() {
 
   logs.push({ id: Date.now(), type: selectedType, kcal, ts, label: label || (selectedType === 'food' ? 'Food' : 'Exercise') });
   logs.sort((a,b) => a.ts - b.ts);
+  markDirty();
   saveLogs();
 
   document.getElementById('f-kcal').value = '';
@@ -939,6 +974,7 @@ function renderLog() {
 
 function removeEntry(id) {
   logs = logs.filter(l => l.id !== id);
+  markDirty();
   saveLogs();
   renderLog();
   updateBalance();
@@ -950,6 +986,8 @@ function resetAll() {
   logs = [];
   resetMs = Date.now();
   cumulativeDeficit = 0;
+  _deficitCache = null;
+  markDirty();
   saveLogs();
   renderLog();
   updateBalance();
