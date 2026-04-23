@@ -189,6 +189,14 @@
     <div style="font-size:12px; color:var(--muted); margin-bottom:8px;" id="settingsDrainVal">~1,940 kcal/day</div>
     <button onclick="closeSettings(); toggleBmrCalc();" style="width:100%; padding:10px; border-radius:7px; border:1px solid var(--accent); background:none; color:var(--accent); font-family:inherit; font-size:12px; font-weight:600; cursor:pointer; margin-bottom:20px;">⚙️ Edit Drain Rate / BMR</button>
 
+    <!-- Tracker Mode -->
+    <div style="font-size:10px; color:var(--muted); letter-spacing:0.1em; font-weight:600; text-transform:uppercase; margin-bottom:8px; margin-top:4px;">Tracker Mode</div>
+    <div style="display:flex; gap:6px; margin-bottom:6px;">
+      <button onclick="setTrackerMode('glycogen')" id="mode-glycogen" style="flex:1; padding:9px; border-radius:7px; border:2px solid var(--accent); background:rgba(124,58,237,0.08); font-family:inherit; font-size:11px; font-weight:600; color:var(--text); cursor:pointer;">🔬 Glycogen</button>
+      <button onclick="setTrackerMode('calorie')" id="mode-calorie" style="flex:1; padding:9px; border-radius:7px; border:1px solid var(--border); background:var(--bg); font-family:inherit; font-size:11px; font-weight:600; color:var(--muted); cursor:pointer;">💰 Calorie</button>
+    </div>
+    <div id="mode-desc" style="font-size:10px; color:var(--muted); margin-bottom:20px; line-height:1.5; padding:7px 9px; background:rgba(124,58,237,0.04); border-radius:6px; border:1px solid var(--border);"></div>
+
     <!-- Reset -->
     <div style="font-size:10px; color:var(--muted); letter-spacing:0.1em; font-weight:600; text-transform:uppercase; margin-bottom:8px;">Data</div>
     <button onclick="resetAll()" style="width:100%; padding:10px; border-radius:7px; border:1px solid var(--deficit); background:none; color:var(--deficit); font-family:inherit; font-size:12px; font-weight:600; cursor:pointer;">⟳ Reset all counters</button>
@@ -196,7 +204,7 @@
 
   <div class="header">
     <div style="flex:1; min-width:0;">
-      <h1>Glycogen Tracker</h1>
+      <h1 id="appTitle">Glyco Tracker</h1>
       <div class="bmr-bar" onclick="toggleBmrCalc()" title="Edit BMR settings">
         <span style="font-size:11px; color:var(--muted); font-weight:500;">⚙️ DRAIN RATE</span>
         <span class="bmr-bar-val" id="bmrBarVal">~1,940 kcal/day</span>
@@ -364,7 +372,7 @@
       <button class="stat-toggle" id="unitToggle" onclick="toggleUnit()" style="margin-top:5px;">→ show in kg</button>
     </div>
     <div style="background:var(--surface); border-radius:8px; border:1px solid var(--border); padding:10px 12px;">
-      <div class="stat-label">GLYCOGEN BALANCE</div>
+      <div class="stat-label" id="balanceCardLabel">GLYCOGEN BALANCE</div>
       <div class="stat-val" id="balanceVal" style="margin-top:3px;">0 kcal</div>
       <div class="stat-sub" id="balanceTime"></div>
     </div>
@@ -375,10 +383,13 @@
 
   <!-- Chart -->
   <div class="chart-wrap">
-    <div class="chart-controls">
-      <button class="chart-btn active" id="view1d" onclick="setView(1)">1D</button>
-      <button class="chart-btn" id="view3d" onclick="setView(3)">3D</button>
-      <button class="chart-btn" id="view7d" onclick="setView(7)">7D</button>
+    <div class="chart-controls" style="flex-wrap:wrap; gap:4px;">
+      <button class="chart-btn active" id="vbtn-1D" onclick="setView('1D')">1D</button>
+      <button class="chart-btn" id="vbtn-3D" onclick="setView('3D')">3D</button>
+      <button class="chart-btn" id="vbtn-7D" onclick="setView('7D')">7D</button>
+      <button class="chart-btn" id="vbtn-1M" onclick="setView('1M')">1M</button>
+      <button class="chart-btn" id="vbtn-1Y" onclick="setView('1Y')">1Y</button>
+      <button class="chart-btn" id="vbtn-ALL" onclick="setView('ALL')">ALL</button>
     </div>
     <canvas id="chart" height="260"></canvas>
   </div>
@@ -453,11 +464,13 @@ const KCAL_PER_KG_FAT = 7700;
 const STORE_KEY = 'glyco_v4_logs';
 const RESET_KEY = 'glyco_v4_reset';
 const DEFICIT_KEY = 'glyco_v4_deficit'; // cumulative odometer
-const UNIT_KEY = 'glyco_v4_unit';       // metric | imperial
+const UNIT_KEY = 'glyco_v4_unit';
+const MODE_KEY = 'glyco_v4_mode';
+const VIEW_KEY = 'glyco_v4_view';
 
 // ── State ────────────────────────────────────────────────────
 let logs = [];
-let viewDays = 1;
+let viewRange = '1D';
 let showKg = false;
 let useImperial = false;
 let resetMs = 0;
@@ -474,6 +487,8 @@ function loadLogs() {
   resetMs = parseInt(localStorage.getItem(RESET_KEY) || '0', 10) || 0;
   cumulativeDeficit = parseFloat(localStorage.getItem(DEFICIT_KEY) || '0') || 0;
   useImperial = localStorage.getItem(UNIT_KEY) === 'imperial';
+  trackerMode = localStorage.getItem(MODE_KEY) || 'glycogen';
+  viewRange = localStorage.getItem(VIEW_KEY) || '1D';
 }
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -491,36 +506,81 @@ function fmtDateFull(ms) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-// Balance at a given timestamp (ms), floor at 0
+// ── Core calculation ─────────────────────────────────────────
+// Glycogen mode: balance floors at 0; deficit accumulates separately
+// Calorie mode: raw balance (positive = surplus, negative = deficit)
 function calcAt(toMs) {
   const foodGained = logs
     .filter(l => l.type === 'food' && l.ts <= toMs)
     .reduce((a, l) => a + l.kcal, 0);
-
   const exBurned = logs
     .filter(l => l.type === 'exercise' && l.ts <= toMs)
     .reduce((a, l) => a + l.kcal, 0);
-
   const startMs = getStartMs();
   const elapsedMins = Math.max(0, (toMs - startMs) / 60000);
   const bmrBurned = elapsedMins * BMR_PER_MIN;
-
   const raw = foodGained - exBurned - bmrBurned;
-  const currentDeficit = Math.max(0, -raw);
-  const balance = Math.max(0, raw);
 
+  if (trackerMode === 'calorie') {
+    return { balance: raw, raw, currentDeficit: 0, deficitBMR: 0, deficitEx: 0 };
+  }
+
+  // Glycogen mode — floor at 0, track cumulative deficit through history
+  const balance = Math.max(0, raw);
+  const currentDeficit = Math.max(0, -raw);
   const totalBurn = bmrBurned + exBurned;
   const deficitBMR = totalBurn > 0 ? currentDeficit * (bmrBurned / totalBurn) : currentDeficit;
   const deficitEx  = totalBurn > 0 ? currentDeficit * (exBurned  / totalBurn) : 0;
-
   return { balance, raw, currentDeficit, deficitBMR, deficitEx };
 }
 
-// Update cumulative deficit odometer — call this on every tick
+// Scan full history to compute true cumulative deficit
+// Deficit only accumulates while raw < 0; food logged after deficit does NOT reduce it
+function computeCumulativeDeficit() {
+  const now = nowMs();
+  const startMs = getStartMs();
+  if (startMs >= now) return 0;
+
+  const STEP = 5 * 60 * 1000; // 5 min samples
+  let total = 0;
+  let prevRaw = null;
+  let prevTs = null;
+
+  for (let t = startMs; t <= now; t += STEP) {
+    const food = logs.filter(l => l.type === 'food' && l.ts <= t).reduce((a, l) => a + l.kcal, 0);
+    const ex   = logs.filter(l => l.type === 'exercise' && l.ts <= t).reduce((a, l) => a + l.kcal, 0);
+    const bmr  = ((t - startMs) / 60000) * BMR_PER_MIN;
+    const raw  = food - ex - bmr;
+
+    if (prevRaw !== null && prevTs !== null) {
+      // If raw was negative in this interval, accumulate the deficit incurred
+      const intervalMins = (t - prevTs) / 60000;
+      const drain = intervalMins * BMR_PER_MIN;
+      // Only count BMR drain that pushed balance below zero
+      if (raw < 0) {
+        const prevBal = Math.max(0, prevRaw);
+        const newBal  = 0;
+        // How much of the drain went into deficit territory?
+        if (prevRaw >= 0) {
+          // Crossed zero this interval — only the portion below zero counts
+          total += Math.abs(raw);
+        } else {
+          // Was already in deficit — count the full drain
+          total += drain;
+        }
+      }
+    }
+    prevRaw = raw;
+    prevTs = t;
+  }
+  return total;
+}
+
 function updateCumulativeDeficit() {
-  const { currentDeficit } = calcAt(nowMs());
-  if (currentDeficit > cumulativeDeficit) {
-    cumulativeDeficit = currentDeficit;
+  if (trackerMode === 'calorie') return;
+  const computed = computeCumulativeDeficit();
+  if (computed > cumulativeDeficit) {
+    cumulativeDeficit = computed;
     localStorage.setItem(DEFICIT_KEY, String(cumulativeDeficit));
   }
 }
@@ -546,9 +606,18 @@ function updateBalance() {
   updateCumulativeDeficit();
 
   const el = document.getElementById('balanceVal');
-  el.textContent = (balance > 0 ? '+' : '') + Math.round(balance) + (useImperial ? ' kcal' : ' kcal');
-  el.style.color = balance > 2000 ? '#f97316' : balance > 500 ? '#a78bfa' : balance > 0 ? '#22c55e' : '#fbbf24';
+  const balRounded = Math.round(balance);
+  el.textContent = (balance > 0 ? '+' : '') + balRounded + ' kcal';
+  if (trackerMode === 'calorie') {
+    el.style.color = balance > 0 ? '#f97316' : balance < 0 ? '#22c55e' : '#fbbf24';
+  } else {
+    el.style.color = balance > 2000 ? '#f97316' : balance > 500 ? '#a78bfa' : balance > 0 ? '#22c55e' : '#fbbf24';
+  }
   document.getElementById('balanceTime').textContent = fmtTime(now);
+  const balLabel = document.querySelector('#balanceCardLabel');
+  if (balLabel) balLabel.textContent = trackerMode === 'calorie' ? 'CALORIE BALANCE' : 'GLYCOGEN BALANCE';
+  const titleEl = document.getElementById('appTitle');
+  if (titleEl) titleEl.textContent = trackerMode === 'calorie' ? 'Calo Tracker' : 'Glyco Tracker';
 
   // Deficit display — kcal always primary, kg/lb toggle is secondary
   const lossKcal = Math.round(cumulativeDeficit);
@@ -583,12 +652,21 @@ function toggleImperial(val) {
 }
 
 // ── Chart ─────────────────────────────────────────────────────
-function setView(days) {
-  viewDays = days;
-  ['1d','3d','7d'].forEach(id => {
-    document.getElementById('view'+id).classList.toggle('active', id === days+'d');
+function setView(range) {
+  viewRange = range;
+  localStorage.setItem(VIEW_KEY, range);
+  ['1D','3D','7D','1M','1Y','ALL'].forEach(r => {
+    const btn = document.getElementById('vbtn-'+r);
+    if (btn) btn.classList.toggle('active', r === range);
   });
   drawChart();
+}
+
+function initViewButtons() {
+  ['1D','3D','7D','1M','1Y','ALL'].forEach(r => {
+    const btn = document.getElementById('vbtn-'+r);
+    if (btn) btn.classList.toggle('active', r === viewRange);
+  });
 }
 
 function drawChart() {
@@ -610,9 +688,18 @@ function drawChart() {
 
   const now = nowMs();
   const endMs = now;
-  const startMs = getStartMs();
-  const viewMs = viewDays * 24 * 60 * 60 * 1000;
-  const chartStartMs = Math.max(startMs, endMs - viewMs);
+  const dataStartMs = getStartMs();
+
+  // Compute chart window from viewRange
+  const rangeMap = { '1D': 1, '3D': 3, '7D': 7, '1M': 30, '1Y': 365 };
+  let chartStartMs;
+  if (viewRange === 'ALL') {
+    chartStartMs = dataStartMs;
+  } else {
+    const days = rangeMap[viewRange] || 1;
+    chartStartMs = Math.max(dataStartMs, endMs - days * 86400000);
+  }
+  if (chartStartMs >= endMs) chartStartMs = endMs - 3600000;
   const totalSpan = endMs - chartStartMs;
 
   const xP = ms => PAD.left + ((ms - chartStartMs) / totalSpan) * CW;
@@ -625,14 +712,21 @@ function drawChart() {
   }
   samples.push({ ms: endMs, val: calcAt(endMs).balance, raw: calcAt(endMs).raw });
 
-  const maxVal = Math.max(...samples.map(s => s.val), 200);
-  const yMax = maxVal * 1.15;
-  const yP = v => PAD.top + CH - (Math.max(0, v) / yMax) * CH;
+  const allVals = samples.map(s => s.val);
+  const maxVal = Math.max(...allVals, 200);
+  const minVal = trackerMode === 'calorie' ? Math.min(...allVals, -200) : 0;
+  const yRange = maxVal - minVal || 400;
+  const yMax = maxVal + yRange * 0.1;
+  const yMin = minVal - yRange * 0.1;
+  const ySpan = yMax - yMin;
+  const yP = v => PAD.top + CH - ((v - yMin) / ySpan) * CH;
+  const zeroY = yP(0);
 
   // Grid – time axis
   ctx.font = `10px 'DM Mono', 'Courier New', monospace`;
   ctx.fillStyle = '#4b5563';
-  const tickIntervalHrs = viewDays <= 1 ? 3 : viewDays <= 3 ? 6 : 12;
+  const rangeDays = viewRange === "ALL" ? 999 : ({"1D":1,"3D":3,"7D":7,"1M":30,"1Y":365}[viewRange]||1);
+  const tickIntervalHrs = rangeDays <= 1 ? 3 : rangeDays <= 3 ? 6 : rangeDays <= 7 ? 12 : 24;
   const tickMs = tickIntervalHrs * 3600000;
   // Find first tick
   let t0 = Math.ceil(chartStartMs / tickMs) * tickMs;
@@ -641,7 +735,7 @@ function drawChart() {
     ctx.strokeStyle = '#1e2330'; ctx.lineWidth = 0.5;
     ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top + CH); ctx.stroke();
     const d = new Date(t);
-    const label = viewDays > 1
+    const label = rangeDays > 1
       ? `${fmtDate(t)} ${String(d.getHours()).padStart(2,'0')}h`
       : `${String(d.getHours()).padStart(2,'0')}:00`;
     ctx.textAlign = 'center';
@@ -650,11 +744,12 @@ function drawChart() {
   }
 
   // Grid – Y axis
-  const yStep = yMax > 2000 ? 500 : yMax > 800 ? 200 : 100;
-  for (let y = 0; y <= yMax; y += yStep) {
+  const yStep = ySpan > 4000 ? 1000 : ySpan > 2000 ? 500 : ySpan > 800 ? 200 : 100;
+  const yGridStart = Math.ceil(yMin / yStep) * yStep;
+  for (let y = yGridStart; y <= yMax; y += yStep) {
     const yp = yP(y);
     ctx.strokeStyle = y === 0 ? '#374151' : '#1e2330';
-    ctx.lineWidth = y === 0 ? 1.2 : 0.5;
+    ctx.lineWidth = y === 0 ? 1.5 : 0.5;
     ctx.beginPath(); ctx.moveTo(PAD.left, yp); ctx.lineTo(PAD.left + CW, yp); ctx.stroke();
     ctx.fillStyle = y === 0 ? '#9ca3af' : '#4b5563';
     ctx.textAlign = 'right';
@@ -662,7 +757,7 @@ function drawChart() {
   }
 
   // Day separators
-  if (viewDays > 1) {
+  if (rangeDays > 1) {
     let dayT = new Date(chartStartMs); dayT.setHours(0,0,0,0); dayT = new Date(dayT.getTime() + 86400000);
     while (dayT.getTime() < endMs) {
       const x = xP(dayT.getTime());
@@ -674,23 +769,40 @@ function drawChart() {
     }
   }
 
-  // Zero fill (deficit zone below zero = red shading at bottom strip)
-  const zeroStrip = 16; // px strip at bottom to show deficit zone
-  ctx.fillStyle = 'rgba(244,63,94,0.07)';
-  ctx.fillRect(PAD.left, PAD.top + CH - zeroStrip, CW, zeroStrip);
-  ctx.fillStyle = 'rgba(244,63,94,0.25)';
-  ctx.fillRect(PAD.left, PAD.top + CH - 1, CW, 1);
+  // Zero line
+  ctx.strokeStyle = 'rgba(156,163,175,0.4)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD.left, zeroY); ctx.lineTo(PAD.left + CW, zeroY); ctx.stroke();
 
-  // Positive fill
+  // Positive fill (above zero)
   ctx.beginPath();
-  ctx.moveTo(xP(samples[0].ms), yP(0));
-  samples.forEach(s => ctx.lineTo(xP(s.ms), yP(s.val)));
-  ctx.lineTo(xP(samples[samples.length-1].ms), yP(0));
+  ctx.moveTo(xP(samples[0].ms), zeroY);
+  samples.forEach(s => ctx.lineTo(xP(s.ms), yP(Math.max(0, s.val))));
+  ctx.lineTo(xP(samples[samples.length-1].ms), zeroY);
   ctx.closePath();
-  const gf = ctx.createLinearGradient(0, PAD.top, 0, PAD.top + CH);
-  gf.addColorStop(0, 'rgba(168,85,247,0.28)');
-  gf.addColorStop(1, 'rgba(168,85,247,0.03)');
-  ctx.fillStyle = gf; ctx.fill();
+  const gfPos = ctx.createLinearGradient(0, PAD.top, 0, zeroY);
+  gfPos.addColorStop(0, 'rgba(168,85,247,0.28)');
+  gfPos.addColorStop(1, 'rgba(168,85,247,0.03)');
+  ctx.fillStyle = gfPos; ctx.fill();
+
+  // Negative fill (below zero — calorie mode)
+  if (trackerMode === 'calorie') {
+    ctx.beginPath();
+    ctx.moveTo(xP(samples[0].ms), zeroY);
+    samples.forEach(s => ctx.lineTo(xP(s.ms), yP(Math.min(0, s.val))));
+    ctx.lineTo(xP(samples[samples.length-1].ms), zeroY);
+    ctx.closePath();
+    const gfNeg = ctx.createLinearGradient(0, zeroY, 0, PAD.top + CH);
+    gfNeg.addColorStop(0, 'rgba(34,197,94,0.03)');
+    gfNeg.addColorStop(1, 'rgba(34,197,94,0.22)');
+    ctx.fillStyle = gfNeg; ctx.fill();
+  } else {
+    // Glycogen mode — red deficit strip at bottom
+    ctx.fillStyle = 'rgba(244,63,94,0.07)';
+    ctx.fillRect(PAD.left, PAD.top + CH - 14, CW, 14);
+    ctx.fillStyle = 'rgba(244,63,94,0.25)';
+    ctx.fillRect(PAD.left, PAD.top + CH - 1, CW, 1);
+  }
 
   // Main line
   const lg = ctx.createLinearGradient(PAD.left, 0, PAD.left + CW, 0);
@@ -733,7 +845,7 @@ function drawChart() {
   ctx.fillText('TIME', PAD.left + CW/2, H - 4);
   ctx.save();
   ctx.translate(10, PAD.top + CH/2); ctx.rotate(-Math.PI/2);
-  ctx.fillText('GLYCOGEN (kcal)', 0, 0);
+  ctx.fillText(trackerMode === 'calorie' ? 'CALORIES (kcal)' : 'GLYCOGEN (kcal)', 0, 0);
   ctx.restore();
 }
 
@@ -1168,11 +1280,31 @@ function openSettings() {
   document.getElementById('unit-imperial').style.background = useImperial ? 'rgba(124,58,237,0.08)' : 'var(--bg)';
   document.getElementById('unit-imperial').style.color = useImperial ? 'var(--text)' : 'var(--muted)';
   document.getElementById('settingsDrainVal').textContent = document.getElementById('bmrBarVal').textContent;
+  // Sync tracker mode
+  ['glycogen','calorie'].forEach(m => {
+    const btn = document.getElementById('mode-' + m);
+    if (!btn) return;
+    btn.style.border   = m === trackerMode ? '2px solid var(--accent)' : '1px solid var(--border)';
+    btn.style.background = m === trackerMode ? 'rgba(124,58,237,0.08)' : 'var(--bg)';
+    btn.style.color    = m === trackerMode ? 'var(--text)' : 'var(--muted)';
+  });
+  const desc = document.getElementById('mode-desc');
+  if (desc) desc.textContent = trackerMode === 'glycogen'
+    ? '🔬 Glycogen mode: balance floors at zero. Deficit calories are tracked separately as fat burned. Goal: stay near zero = weight loss zone.'
+    : '💰 Calorie mode: bank balance. Positive = calorie surplus (weight gain territory). Negative = deficit (weight loss). Aim for new lows.';
 }
 
 function closeSettings() {
   document.getElementById('settingsPanel').style.display = 'none';
   document.getElementById('settingsOverlay').style.display = 'none';
+}
+
+function setTrackerMode(mode) {
+  trackerMode = mode;
+  localStorage.setItem(MODE_KEY, mode);
+  updateBalance();
+  drawChart();
+  openSettings(); // re-sync
 }
 
 // ── Theme ─────────────────────────────────────────────────────
@@ -1203,11 +1335,14 @@ loadTheme();
 loadBmrSettings();
 loadLogs();
 useImperial = localStorage.getItem(UNIT_KEY) === 'imperial';
+trackerMode = localStorage.getItem(MODE_KEY) || 'glycogen';
+viewRange = localStorage.getItem(VIEW_KEY) || '1D';
 setDefaultInputs();
 updateBalance();
 drawChart();
 renderLog();
 
+initViewButtons();
 setInterval(() => { updateBalance(); drawChart(); refreshTimeIfUntouched(); }, 60000);
 window.addEventListener('resize', drawChart);
 document.addEventListener('visibilitychange', () => {
