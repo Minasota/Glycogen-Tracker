@@ -162,6 +162,38 @@
 <body>
 <div class="app">
 
+  <!-- Settings overlay -->
+  <div id="settingsOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:200;" onclick="closeSettings()"></div>
+  <div id="settingsPanel" style="display:none; position:fixed; top:0; right:0; width:min(320px,90vw); height:100vh; background:var(--surface); border-left:1px solid var(--border); z-index:201; padding:20px 16px; overflow-y:auto; flex-direction:column; gap:0;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <span style="font-size:14px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--text)">Settings</span>
+      <button onclick="closeSettings()" style="background:none; border:none; color:var(--muted); font-size:22px; cursor:pointer; line-height:1;">×</button>
+    </div>
+
+    <!-- Theme -->
+    <div style="font-size:10px; color:var(--muted); letter-spacing:0.1em; font-weight:600; text-transform:uppercase; margin-bottom:8px;">Appearance</div>
+    <div style="display:flex; gap:6px; margin-bottom:20px;">
+      <button onclick="setTheme('dark')" id="theme-dark" style="flex:1; padding:9px; border-radius:7px; border:2px solid var(--accent); background:rgba(124,58,237,0.08); font-family:inherit; font-size:12px; font-weight:600; color:var(--text); cursor:pointer;">🌙 Dark</button>
+      <button onclick="setTheme('light')" id="theme-light" style="flex:1; padding:9px; border-radius:7px; border:1px solid var(--border); background:var(--bg); font-family:inherit; font-size:12px; font-weight:600; color:var(--muted); cursor:pointer;">☀️ Light</button>
+    </div>
+
+    <!-- Units -->
+    <div style="font-size:10px; color:var(--muted); letter-spacing:0.1em; font-weight:600; text-transform:uppercase; margin-bottom:8px;">Units</div>
+    <div style="display:flex; gap:6px; margin-bottom:20px;">
+      <button onclick="toggleImperial(false)" id="unit-metric" style="flex:1; padding:9px; border-radius:7px; border:2px solid var(--accent); background:rgba(124,58,237,0.08); font-family:inherit; font-size:12px; font-weight:600; color:var(--text); cursor:pointer;">⚖️ Metric (kg)</button>
+      <button onclick="toggleImperial(true)" id="unit-imperial" style="flex:1; padding:9px; border-radius:7px; border:1px solid var(--border); background:var(--bg); font-family:inherit; font-size:12px; font-weight:600; color:var(--muted); cursor:pointer;">🇺🇸 Imperial (lb)</button>
+    </div>
+
+    <!-- Drain Rate -->
+    <div style="font-size:10px; color:var(--muted); letter-spacing:0.1em; font-weight:600; text-transform:uppercase; margin-bottom:8px;">Drain Rate</div>
+    <div style="font-size:12px; color:var(--muted); margin-bottom:8px;" id="settingsDrainVal">~1,940 kcal/day</div>
+    <button onclick="closeSettings(); toggleBmrCalc();" style="width:100%; padding:10px; border-radius:7px; border:1px solid var(--accent); background:none; color:var(--accent); font-family:inherit; font-size:12px; font-weight:600; cursor:pointer; margin-bottom:20px;">⚙️ Edit Drain Rate / BMR</button>
+
+    <!-- Reset -->
+    <div style="font-size:10px; color:var(--muted); letter-spacing:0.1em; font-weight:600; text-transform:uppercase; margin-bottom:8px;">Data</div>
+    <button onclick="resetAll()" style="width:100%; padding:10px; border-radius:7px; border:1px solid var(--deficit); background:none; color:var(--deficit); font-family:inherit; font-size:12px; font-weight:600; cursor:pointer;">⟳ Reset all counters</button>
+  </div>
+
   <div class="header">
     <div style="flex:1; min-width:0;">
       <h1>Glycogen Tracker</h1>
@@ -172,13 +204,8 @@
         <span class="bmr-bar-arrow" id="bmrArrow" style="display:none"></span>
       </div>
     </div>
-    <div class="balance-box">
-      <div style="display:flex; justify-content:flex-end; margin-bottom:4px;">
-        <button id="themeBtn" onclick="toggleTheme()" style="background:none; border:1px solid var(--border); border-radius:20px; padding:2px 8px; font-family:inherit; font-size:12px; color:var(--muted); cursor:pointer;">🌙</button>
-      </div>
-      <div class="balance-label">GLYCOGEN BALANCE</div>
-      <div class="balance-val" id="balanceVal">+0 kcal</div>
-      <div class="balance-time" id="balanceTime"></div>
+    <div style="display:flex; align-items:flex-start; padding-top:2px;">
+      <button onclick="openSettings()" style="background:none; border:1px solid var(--border); border-radius:8px; padding:5px 9px; font-size:16px; color:var(--muted); cursor:pointer; line-height:1;">⚙️</button>
     </div>
   </div>
 
@@ -328,29 +355,23 @@
     <button class="bmr-apply-btn" onclick="applyBmr()">APPLY & USE THIS DRAIN RATE</button>
   </div>
 
-  <!-- Stats -->
-  <div class="stats-row">
-    <div class="stat-card">
-      <div class="stat-label">TOTAL DEFICIT BURNED</div>
-      <div class="stat-val" id="totalLossVal" style="color:var(--deficit)">0</div>
-      <div class="stat-sub" id="totalLossSub">kcal below zero</div>
-      <button class="stat-toggle" id="unitToggle" onclick="toggleUnit()">→ show in kg</button>
-      <button class="stat-toggle" style="color:var(--deficit); margin-top:6px;" onclick="resetAll()">⟳ reset counters</button>
+  <!-- Stats — two cards -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px;">
+    <div style="background:var(--surface); border-radius:8px; border:1px solid var(--border); padding:10px 12px;">
+      <div class="stat-label">DEFICIT CALORIES BURNED</div>
+      <div class="stat-val" id="totalLossVal" style="color:var(--deficit); margin-top:3px;">0 kcal</div>
+      <div class="stat-sub" id="totalLossSub">burned below zero</div>
+      <button class="stat-toggle" id="unitToggle" onclick="toggleUnit()" style="margin-top:5px;">→ show in kg</button>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">BELOW-ZERO BREAKDOWN</div>
-      <div style="display:flex; flex-direction:column; gap:4px; margin-top:2px;">
-        <div style="font-size:11px; display:flex; justify-content:space-between;">
-          <span style="color:var(--bmr)">BMR</span>
-          <span id="bmrDeficit">0 kcal</span>
-        </div>
-        <div style="font-size:11px; display:flex; justify-content:space-between;">
-          <span style="color:var(--exercise)">Exercise</span>
-          <span id="exDeficit">0 kcal</span>
-        </div>
-      </div>
+    <div style="background:var(--surface); border-radius:8px; border:1px solid var(--border); padding:10px 12px;">
+      <div class="stat-label">GLYCOGEN BALANCE</div>
+      <div class="stat-val" id="balanceVal" style="margin-top:3px;">0 kcal</div>
+      <div class="stat-sub" id="balanceTime"></div>
     </div>
   </div>
+  <!-- hidden elements kept for JS compatibility -->
+  <span id="bmrDeficit" style="display:none">0</span>
+  <span id="exDeficit" style="display:none">0</span>
 
   <!-- Chart -->
   <div class="chart-wrap">
@@ -426,26 +447,33 @@
 <script>
 // ── Constants ────────────────────────────────────────────────
 const BMR_DEFAULT = 1940;
-let BMR_PER_MIN = BMR_DEFAULT / 1440; // kcal per minute passive burn — updated by calculator
+let BMR_PER_MIN = BMR_DEFAULT / 1440;
 const BMR_STORE_KEY = 'glyco_bmr_settings';
 const KCAL_PER_KG_FAT = 7700;
 const STORE_KEY = 'glyco_v4_logs';
 const RESET_KEY = 'glyco_v4_reset';
+const DEFICIT_KEY = 'glyco_v4_deficit'; // cumulative odometer
+const UNIT_KEY = 'glyco_v4_unit';       // metric | imperial
 
 // ── State ────────────────────────────────────────────────────
-let logs = [];           // { id, type, kcal, ts (epoch ms), label }
+let logs = [];
 let viewDays = 1;
 let showKg = false;
-let resetMs = 0;         // epoch ms of last manual reset (0 = never)
+let useImperial = false;
+let resetMs = 0;
+let cumulativeDeficit = 0; // cumulative deficit — never decreases when food is logged
 
 // ── Persistence ──────────────────────────────────────────────
 function saveLogs() {
   localStorage.setItem(STORE_KEY, JSON.stringify(logs));
   localStorage.setItem(RESET_KEY, String(resetMs));
+  localStorage.setItem(DEFICIT_KEY, String(cumulativeDeficit));
 }
 function loadLogs() {
   try { logs = JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch { logs = []; }
   resetMs = parseInt(localStorage.getItem(RESET_KEY) || '0', 10) || 0;
+  cumulativeDeficit = parseFloat(localStorage.getItem(DEFICIT_KEY) || '0') || 0;
+  useImperial = localStorage.getItem(UNIT_KEY) === 'imperial';
 }
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -464,36 +492,37 @@ function fmtDateFull(ms) {
 }
 
 // Balance at a given timestamp (ms), floor at 0
-// Returns { balance, deficitBMR, deficitExercise }
 function calcAt(toMs) {
-  // Food added
   const foodGained = logs
     .filter(l => l.type === 'food' && l.ts <= toMs)
     .reduce((a, l) => a + l.kcal, 0);
 
-  // Exercise burned
   const exBurned = logs
     .filter(l => l.type === 'exercise' && l.ts <= toMs)
     .reduce((a, l) => a + l.kcal, 0);
 
-  // Passive BMR burned since very first event or first log timestamp
   const startMs = getStartMs();
   const elapsedMins = Math.max(0, (toMs - startMs) / 60000);
   const bmrBurned = elapsedMins * BMR_PER_MIN;
 
   const raw = foodGained - exBurned - bmrBurned;
-
-  // Deficit: calories "spent" while below zero
-  // We approximate by how much raw dips below zero
-  const deficit = Math.max(0, -raw);
+  const currentDeficit = Math.max(0, -raw);
   const balance = Math.max(0, raw);
 
-  // Attribution of deficit between BMR and exercise (proportional)
   const totalBurn = bmrBurned + exBurned;
-  const deficitBMR = totalBurn > 0 ? deficit * (bmrBurned / totalBurn) : deficit;
-  const deficitEx  = totalBurn > 0 ? deficit * (exBurned  / totalBurn) : 0;
+  const deficitBMR = totalBurn > 0 ? currentDeficit * (bmrBurned / totalBurn) : currentDeficit;
+  const deficitEx  = totalBurn > 0 ? currentDeficit * (exBurned  / totalBurn) : 0;
 
-  return { balance, raw, deficit, deficitBMR, deficitEx };
+  return { balance, raw, currentDeficit, deficitBMR, deficitEx };
+}
+
+// Update cumulative deficit odometer — call this on every tick
+function updateCumulativeDeficit() {
+  const { currentDeficit } = calcAt(nowMs());
+  if (currentDeficit > cumulativeDeficit) {
+    cumulativeDeficit = currentDeficit;
+    localStorage.setItem(DEFICIT_KEY, String(cumulativeDeficit));
+  }
 }
 
 function getStartMs() {
@@ -513,22 +542,30 @@ function totalDeficit() {
 // ── UI Updates ────────────────────────────────────────────────
 function updateBalance() {
   const now = nowMs();
-  const { balance, deficitBMR, deficitEx, deficit } = calcAt(now);
+  const { balance, deficitBMR, deficitEx, currentDeficit } = calcAt(now);
+  updateCumulativeDeficit();
+
   const el = document.getElementById('balanceVal');
-  el.textContent = (balance > 0 ? '+' : '') + Math.round(balance) + ' kcal';
+  el.textContent = (balance > 0 ? '+' : '') + Math.round(balance) + (useImperial ? ' kcal' : ' kcal');
   el.style.color = balance > 2000 ? '#f97316' : balance > 500 ? '#a78bfa' : balance > 0 ? '#22c55e' : '#fbbf24';
   document.getElementById('balanceTime').textContent = fmtTime(now);
 
-  // Total loss
-  const lossKcal = Math.round(deficit);
-  const lossKg   = (deficit / KCAL_PER_KG_FAT).toFixed(3);
-  document.getElementById('totalLossVal').textContent = showKg
-    ? lossKg + ' kg'
-    : lossKcal + ' kcal';
-  document.getElementById('totalLossSub').textContent = showKg
-    ? 'estimated fat burned'
-    : 'kcal burned below zero';
-  document.getElementById('unitToggle').textContent = showKg ? '→ show in kcal' : '→ show in kg';
+  // Deficit display — kcal always primary, kg/lb toggle is secondary
+  const lossKcal = Math.round(cumulativeDeficit);
+  const lossKg   = (cumulativeDeficit / KCAL_PER_KG_FAT).toFixed(3);
+  const lossLb   = (cumulativeDeficit / 3500).toFixed(3);
+
+  if (showKg) {
+    document.getElementById('totalLossVal').textContent = useImperial ? lossLb + ' lb' : lossKg + ' kg';
+    document.getElementById('totalLossSub').textContent = 'estimated fat burned';
+    document.getElementById('unitToggle').textContent = '→ show in kcal';
+  } else {
+    document.getElementById('totalLossVal').textContent = lossKcal + ' kcal';
+    document.getElementById('totalLossSub').textContent = 'burned below zero';
+    document.getElementById('unitToggle').textContent = useImperial ? '→ show in lb' : '→ show in kg';
+  }
+
+  // Breakdown
   document.getElementById('bmrDeficit').textContent = Math.round(deficitBMR) + ' kcal';
   document.getElementById('exDeficit').textContent  = Math.round(deficitEx)  + ' kcal';
 }
@@ -536,6 +573,13 @@ function updateBalance() {
 function toggleUnit() {
   showKg = !showKg;
   updateBalance();
+}
+
+function toggleImperial(val) {
+  useImperial = val;
+  localStorage.setItem(UNIT_KEY, val ? 'imperial' : 'metric');
+  updateBalance();
+  closeSettings();
 }
 
 // ── Chart ─────────────────────────────────────────────────────
@@ -793,10 +837,12 @@ function resetAll() {
   if (!confirm('Reset all counters and graph to zero right now?\n\nThis clears all entries and starts fresh from this moment.')) return;
   logs = [];
   resetMs = Date.now();
+  cumulativeDeficit = 0;
   saveLogs();
   renderLog();
   updateBalance();
   drawChart();
+  closeSettings();
   showToast('Reset — starting fresh from now');
 }
 
@@ -1101,26 +1147,62 @@ function toggleBmrCalc(forceClose) {
   });
 });
 
+// ── Settings Panel ────────────────────────────────────────────
+function openSettings() {
+  const panel = document.getElementById('settingsPanel');
+  const overlay = document.getElementById('settingsOverlay');
+  panel.style.display = 'flex';
+  overlay.style.display = 'block';
+  // Sync button states
+  const isLight = document.body.classList.contains('light');
+  document.getElementById('theme-dark').style.border  = isLight ? '1px solid var(--border)' : '2px solid var(--accent)';
+  document.getElementById('theme-dark').style.background  = isLight ? 'var(--bg)' : 'rgba(124,58,237,0.08)';
+  document.getElementById('theme-dark').style.color  = isLight ? 'var(--muted)' : 'var(--text)';
+  document.getElementById('theme-light').style.border = isLight ? '2px solid var(--accent)' : '1px solid var(--border)';
+  document.getElementById('theme-light').style.background = isLight ? 'rgba(124,58,237,0.08)' : 'var(--bg)';
+  document.getElementById('theme-light').style.color = isLight ? 'var(--text)' : 'var(--muted)';
+  document.getElementById('unit-metric').style.border   = useImperial ? '1px solid var(--border)' : '2px solid var(--accent)';
+  document.getElementById('unit-metric').style.background   = useImperial ? 'var(--bg)' : 'rgba(124,58,237,0.08)';
+  document.getElementById('unit-metric').style.color   = useImperial ? 'var(--muted)' : 'var(--text)';
+  document.getElementById('unit-imperial').style.border = useImperial ? '2px solid var(--accent)' : '1px solid var(--border)';
+  document.getElementById('unit-imperial').style.background = useImperial ? 'rgba(124,58,237,0.08)' : 'var(--bg)';
+  document.getElementById('unit-imperial').style.color = useImperial ? 'var(--text)' : 'var(--muted)';
+  document.getElementById('settingsDrainVal').textContent = document.getElementById('bmrBarVal').textContent;
+}
+
+function closeSettings() {
+  document.getElementById('settingsPanel').style.display = 'none';
+  document.getElementById('settingsOverlay').style.display = 'none';
+}
+
 // ── Theme ─────────────────────────────────────────────────────
+function setTheme(theme) {
+  if (theme === 'light') {
+    document.body.classList.add('light');
+  } else {
+    document.body.classList.remove('light');
+  }
+  localStorage.setItem('glyco_theme', theme);
+  drawChart();
+  openSettings(); // re-sync button states
+}
+
 function toggleTheme() {
   const isLight = document.body.classList.toggle('light');
-  document.getElementById('themeBtn').textContent = isLight ? '☀️' : '🌙';
   localStorage.setItem('glyco_theme', isLight ? 'light' : 'dark');
   drawChart();
 }
 
 function loadTheme() {
   const saved = localStorage.getItem('glyco_theme');
-  if (saved === 'light') {
-    document.body.classList.add('light');
-    document.getElementById('themeBtn').textContent = '☀️';
-  }
+  if (saved === 'light') document.body.classList.add('light');
 }
 
 // ── Init ──────────────────────────────────────────────────────
 loadTheme();
 loadBmrSettings();
 loadLogs();
+useImperial = localStorage.getItem(UNIT_KEY) === 'imperial';
 setDefaultInputs();
 updateBalance();
 drawChart();
