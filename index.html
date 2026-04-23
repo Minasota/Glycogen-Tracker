@@ -539,21 +539,27 @@ function sumUpTo(sorted, toMs) {
 function getMaxGlycogen() {
   try {
     const s = JSON.parse(localStorage.getItem('glyco_bmr_settings'));
-    if (!s) return 2000;
-    const weight = parseFloat(s.weight) || 95;
-    const age    = parseFloat(s.age)    || 25;
-    const height = parseFloat(s.height) || 172;
-    const sex    = s.sex || 'male';
-    // Estimate body fat % using BMI-based formula (Deurenberg)
-    const bmi = weight / ((height / 100) ** 2);
-    const bfPct = sex === 'male'
-      ? (1.20 * bmi) + (0.23 * age) - 16.2
-      : (1.20 * bmi) + (0.23 * age) - 5.4;
-    const fatKg  = weight * Math.max(0.05, Math.min(0.5, bfPct / 100));
-    const leanKg = weight - fatKg;
-    // Muscle glycogen ~300-500g, liver ~80-100g, ~15g/kg lean mass total
-    const glycoGrams = leanKg * 15;
-    return Math.round(glycoGrams * 4); // 4 kcal per gram
+    const weight = s ? (parseFloat(s.weight) || 95) : 95;
+    const sex    = s ? (s.sex || 'male') : 'male';
+
+    // Muscle mass estimated directly from total body weight
+    // Population averages (no body fat % needed):
+    // Males:   ~38% of body weight is skeletal muscle
+    // Females: ~32% of body weight is skeletal muscle
+    // Source: Janssen et al., Journal of Applied Physiology, 2000
+    const muscleFrac = sex === 'male' ? 0.38 : 0.32;
+    const muscleKg   = weight * muscleFrac;
+
+    // Muscle glycogen: ~1.5g per 100g muscle (conservative, general population)
+    // Source: Hultman & Bergström, 1967; Bergström et al., 1967
+    const muscleGlycoG = muscleKg * 1000 * 0.015;
+
+    // Liver glycogen: ~90g (consistent across body sizes)
+    // Source: Nilsson & Hultman, 1973
+    const liverGlycoG = 90;
+
+    const totalGlycoG = muscleGlycoG + liverGlycoG;
+    return Math.round(totalGlycoG * 4); // 4 kcal per gram
   } catch { return 2000; }
 }
 
@@ -611,7 +617,10 @@ function simulateGlycogen(toMs) {
   }
   drainInterval(prevTs, toMs);
 
-  return { balance, overfill: totalOverfill, deficitKcal: totalDeficitKcal, maxGlyco };
+  const safeBalance   = isNaN(balance)        ? 0 : balance;
+  const safeOverfill  = isNaN(totalOverfill)  ? 0 : totalOverfill;
+  const safeDeficit   = isNaN(totalDeficitKcal) ? 0 : totalDeficitKcal;
+  return { balance: safeBalance, overfill: safeOverfill, deficitKcal: safeDeficit, maxGlyco };
 }
 
 function calcAt(toMs) {
@@ -622,13 +631,21 @@ function calcAt(toMs) {
     const startMs    = getStartMs();
     const bmrBurned  = Math.max(0, (toMs - startMs) / 60000) * BMR_PER_MIN;
     const raw = foodGained - exBurned - bmrBurned;
-    return { balance: raw, raw, currentDeficit: 0, deficitKcal: 0, overfill: 0, maxGlyco: getMaxGlycogen() };
+    const safeRaw = isNaN(raw) ? 0 : raw;
+    return { balance: safeRaw, raw: safeRaw, currentDeficit: 0, deficitKcal: 0, overfill: 0, maxGlyco: getMaxGlycogen() };
   }
 
   const { balance, overfill, deficitKcal, maxGlyco } = simulateGlycogen(toMs);
-  // Net fat balance = deficit burned - overfill gained
-  const netFatKcal = deficitKcal - overfill;
-  return { balance, raw: balance, currentDeficit: deficitKcal, deficitKcal, overfill, netFatKcal, maxGlyco };
+  const netFatKcal = (deficitKcal || 0) - (overfill || 0);
+  return {
+    balance:        isNaN(balance)     ? 0 : balance,
+    raw:            isNaN(balance)     ? 0 : balance,
+    currentDeficit: isNaN(deficitKcal) ? 0 : deficitKcal,
+    deficitKcal:    isNaN(deficitKcal) ? 0 : deficitKcal,
+    overfill:       isNaN(overfill)    ? 0 : overfill,
+    netFatKcal:     isNaN(netFatKcal)  ? 0 : netFatKcal,
+    maxGlyco
+  };
 }
 
 // ── Net fat balance — cached ──────────────────────────────────
@@ -713,6 +730,46 @@ function updateBalance() {
   if (balLabel) balLabel.textContent = trackerMode === 'calorie' ? 'CALORIE BALANCE' : 'GLYCOGEN BALANCE';
   const titleEl = document.getElementById('appTitle');
   if (titleEl) titleEl.textContent = trackerMode === 'calorie' ? 'Calo Tracker' : 'Glyco Tracker';
+
+  // Show/hide correct stats panel
+  const glycoPanel   = document.getElementById('stats-glyco');
+  const caloriePanel = document.getElementById('stats-calorie');
+  if (glycoPanel)   glycoPanel.style.display   = trackerMode === 'glycogen' ? 'grid' : 'none';
+  if (caloriePanel) caloriePanel.style.display = trackerMode === 'calorie'  ? 'block' : 'none';
+
+  // Calorie mode: render period summaries
+  if (trackerMode === 'calorie') {
+    const periods = [
+      { label: '1D', ms: 86400000 },
+      { label: '3D', ms: 3 * 86400000 },
+      { label: '7D', ms: 7 * 86400000 },
+      { label: '1M', ms: 30 * 86400000 },
+    ];
+    const periodsEl = document.getElementById('calorie-periods');
+    if (periodsEl) {
+      periodsEl.innerHTML = periods.map(p => {
+        const fromMs = now - p.ms;
+        const startMs = getStartMs();
+        if (fromMs < startMs && startMs > now - 86400000 * 2) return ''; // not enough data
+        const { balance: bal } = calcAt(now);
+        // Compute net over this period
+        rebuildIndex();
+        const foodInPeriod = _foodSorted.filter(e => e.ts >= fromMs && e.ts <= now).reduce((a,e) => a+e.kcal, 0);
+        const exInPeriod   = _exSorted.filter(e => e.ts >= fromMs && e.ts <= now).reduce((a,e) => a+e.kcal, 0);
+        const periodMins   = Math.min(p.ms, now - startMs) / 60000;
+        const bmrInPeriod  = periodMins * BMR_PER_MIN;
+        const net = foodInPeriod - exInPeriod - bmrInPeriod;
+        const isGain = net > 0;
+        const absNet = Math.abs(Math.round(net));
+        if (absNet < 5) return \`<div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted);">\${p.label}</span><span style="color:#fbbf24;">balanced</span></div>\`;
+        return \`<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;">
+          <span style="color:var(--muted);font-weight:500;">\${p.label}</span>
+          <span style="color:\${isGain?'#f97316':'#22c55e'};font-weight:700;font-family:'DM Mono',monospace;">\${isGain?'+':'-'}\${absNet} kcal</span>
+          <span style="color:var(--muted);font-size:10px;">\${isGain?'excess gained':'deficit burned'}</span>
+        </div>\`;
+      }).filter(Boolean).join('');
+    }
+  }
 
   // Net fat balance display
   const netKcal  = Math.round(cumulativeDeficit); // positive = burned, negative = gained
