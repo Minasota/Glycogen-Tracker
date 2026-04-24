@@ -363,12 +363,12 @@
     <button class="bmr-apply-btn" onclick="applyBmr()">APPLY & USE THIS DRAIN RATE</button>
   </div>
 
-  <!-- Stats — two cards -->
-  <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px;">
+  <!-- Stats — glycogen mode: two cards -->
+  <div id="stats-glyco" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px;">
     <div style="background:var(--surface); border-radius:8px; border:1px solid var(--border); padding:10px 12px;">
-      <div class="stat-label">DEFICIT CALORIES BURNED</div>
+      <div class="stat-label" id="deficitCardLabel">DEFICIT CALORIES BURNED</div>
       <div class="stat-val" id="totalLossVal" style="color:var(--deficit); margin-top:3px;">0 kcal</div>
-      <div class="stat-sub" id="totalLossSub">burned below zero</div>
+      <div class="stat-sub" id="totalLossSub">net fat burned</div>
       <button class="stat-toggle" id="unitToggle" onclick="toggleUnit()" style="margin-top:5px;">→ show in kg</button>
     </div>
     <div style="background:var(--surface); border-radius:8px; border:1px solid var(--border); padding:10px 12px;">
@@ -378,6 +378,19 @@
       <div id="toZeroHint" style="display:none; font-size:10px; color:var(--deficit); margin-top:4px; font-weight:500;"></div>
     </div>
   </div>
+
+  <!-- Stats — calorie mode: single wide card -->
+  <div id="stats-calorie" style="display:none; background:var(--surface); border-radius:8px; border:1px solid var(--border); padding:12px 14px; margin-bottom:14px;">
+    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px;">
+      <div class="stat-label" id="calorie-main-label">DEFICIT CALORIES BURNED</div>
+      <div class="stat-sub" id="calo-time" style="text-align:right;"></div>
+    </div>
+    <div class="stat-val" id="calo-balance-val" style="margin-top:2px; margin-bottom:8px;">0 kcal</div>
+    <div id="toZeroHint2" style="display:none;"></div>
+    <div style="border-top:1px solid var(--border); margin:8px 0 6px;"></div>
+    <div id="calorie-periods" style="display:flex; flex-direction:column; gap:6px;"></div>
+  </div>
+
   <!-- hidden elements kept for JS compatibility -->
   <span id="bmrDeficit" style="display:none">0</span>
   <span id="exDeficit" style="display:none">0</span>
@@ -659,7 +672,10 @@ function getCachedSim() {
   const now = nowMs();
   const hash = logHash() + '|' + Math.floor(now / 300000);
   if (_simCache && _simCache.hash === hash) return _simCache.result;
-  const result = simulateGlycogen(now);
+  const sim = simulateGlycogen(now);
+  // Compute netFatKcal here so it's available everywhere
+  const netFatKcal = (sim.deficitKcal || 0) - (sim.overfill || 0);
+  const result = { ...sim, netFatKcal: isNaN(netFatKcal) ? 0 : netFatKcal };
   _simCache = { hash, result };
   return result;
 }
@@ -667,7 +683,7 @@ function getCachedSim() {
 function computeCumulativeDeficit() {
   if (trackerMode === 'calorie') return 0;
   const { netFatKcal } = getCachedSim();
-  return netFatKcal; // positive = net fat burned, negative = net fat gained
+  return (netFatKcal === undefined || isNaN(netFatKcal)) ? 0 : netFatKcal;
 }
 
 function updateCumulativeDeficit() {
@@ -737,6 +753,20 @@ function updateBalance() {
   if (glycoPanel)   glycoPanel.style.display   = trackerMode === 'glycogen' ? 'grid' : 'none';
   if (caloriePanel) caloriePanel.style.display = trackerMode === 'calorie'  ? 'block' : 'none';
 
+  // Update calorie mode main label and value color
+  if (trackerMode === 'calorie') {
+    const { balance: calBal } = calcAt(nowMs());
+    const mainLabel = document.getElementById('calorie-main-label');
+    const balEl     = document.getElementById('calo-balance-val');
+    const timeEl    = document.getElementById('calo-time');
+    if (mainLabel) mainLabel.textContent = calBal > 0 ? 'EXCESS CALORIES GAINED' : 'DEFICIT CALORIES BURNED';
+    if (balEl) {
+      balEl.textContent = (calBal > 0 ? '+' : '') + Math.round(calBal) + ' kcal';
+      balEl.style.color = calBal > 0 ? '#f97316' : '#22c55e';
+    }
+    if (timeEl) timeEl.textContent = fmtTime(nowMs());
+  }
+
   // Calorie mode: render period summaries
   if (trackerMode === 'calorie') {
     const periods = [
@@ -761,12 +791,12 @@ function updateBalance() {
         const net = foodInPeriod - exInPeriod - bmrInPeriod;
         const isGain = net > 0;
         const absNet = Math.abs(Math.round(net));
-        if (absNet < 5) return \`<div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted);">\${p.label}</span><span style="color:#fbbf24;">balanced</span></div>\`;
-        return \`<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;">
-          <span style="color:var(--muted);font-weight:500;">\${p.label}</span>
-          <span style="color:\${isGain?'#f97316':'#22c55e'};font-weight:700;font-family:'DM Mono',monospace;">\${isGain?'+':'-'}\${absNet} kcal</span>
-          <span style="color:var(--muted);font-size:10px;">\${isGain?'excess gained':'deficit burned'}</span>
-        </div>\`;
+        if (absNet < 5) return '<div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted);">' + p.label + '</span><span style="color:#fbbf24;">balanced</span></div>';
+        return '<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;">' +
+          '<span style="color:var(--muted);font-weight:500;">' + p.label + '</span>' +
+          '<span style="color:' + (isGain?'#f97316':'#22c55e') + ';font-weight:700;font-family:DM Mono,monospace;">' + (isGain?'+':'-') + absNet + ' kcal</span>' +
+          '<span style="color:var(--muted);font-size:10px;">' + (isGain?'excess gained':'deficit burned') + '</span>' +
+          '</div>';
       }).filter(Boolean).join('');
     }
   }
