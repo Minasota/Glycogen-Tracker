@@ -15,27 +15,89 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
   :root {
-    --bg: #0a0c10;
-    --surface: #111318;
-    --border: #1e2330;
-    --food: #22c55e;
-    --bmr: #f97316;
-    --exercise: #3b82f6;
-    --text: #e2e8f0;
-    --muted: #4b5563;
+    --bg: #06070d;
+    --surface: #0d0f18;
+    --border: #1a1f35;
+    --food: #00ff87;
+    --bmr: #ff6b35;
+    --exercise: #4db8ff;
+    --text: #eef0ff;
+    --muted: #525880;
     --accent: #7c3aed;
-    --now: #fbbf24;
-    --deficit: #f43f5e;
-    --chart-bg: #111318;
+    --now: #ffd60a;
+    --deficit: #ff4060;
+    --chart-bg: #0d0f18;
+    --gradient-top: rgba(124,58,237,0.18);
+    --gradient-line1: #5b21b6;
+    --gradient-line2: #8b5cf6;
+    --gradient-line3: #c4b5fd;
+    --fill-pos-top: rgba(139,92,246,0.32);
+    --fill-pos-bot: rgba(139,92,246,0.02);
+    --fill-neg-top: rgba(0,255,135,0.02);
+    --fill-neg-bot: rgba(0,255,135,0.28);
   }
-  body.light {
-    --bg: #f4f6f9;
-    --surface: #ffffff;
-    --border: #dde1ea;
-    --text: #1a1d26;
-    --muted: #7b8299;
-    --accent: #6d28d9;
-    --chart-bg: #ffffff;
+  /* ── Light theme ── */
+  body.theme-light {
+    --bg: #eef0ff; --surface: #ffffff; --border: #c0c8f0;
+    --text: #080a18; --muted: #5060a0; --accent: #4f17d0; --chart-bg: #f8f9ff;
+    --food: #00a855; --bmr: #e05000; --exercise: #0070d0; --now: #c07000;
+    --deficit: #cc0030;
+    --gradient-line1: #4f17d0; --gradient-line2: #7c3aed; --gradient-line3: #a78bfa;
+    --fill-pos-top: rgba(79,23,208,0.18); --fill-pos-bot: rgba(79,23,208,0.02);
+    --fill-neg-top: rgba(0,168,85,0.02); --fill-neg-bot: rgba(0,168,85,0.2);
+  }
+  /* ── Forest theme ── */
+  body.theme-forest {
+    --bg: #020a04; --surface: #061408; --border: #0c2e12;
+    --text: #edfff2; --muted: #3d7a4a; --accent: #00e676; --chart-bg: #061408;
+    --food: #76ff03; --bmr: #ff9100; --exercise: #00e5ff; --now: #ffff00;
+    --deficit: #ff1744;
+    --gradient-line1: #00b248; --gradient-line2: #00e676; --gradient-line3: #76ff03;
+    --fill-pos-top: rgba(0,230,118,0.32); --fill-pos-bot: rgba(0,230,118,0.02);
+    --fill-neg-top: rgba(118,255,3,0.02); --fill-neg-bot: rgba(118,255,3,0.28);
+  }
+  /* ── Ocean theme ── */
+  body.theme-ocean {
+    --bg: #00040e; --surface: #000d20; --border: #001e40;
+    --text: #dff4ff; --muted: #2e6888; --accent: #00b0ff; --chart-bg: #000d20;
+    --food: #00e5ff; --bmr: #ff6d00; --exercise: #d500f9; --now: #ffea00;
+    --deficit: #ff1744;
+    --gradient-line1: #0057b7; --gradient-line2: #00b0ff; --gradient-line3: #80d8ff;
+    --fill-pos-top: rgba(0,176,255,0.32); --fill-pos-bot: rgba(0,176,255,0.02);
+    --fill-neg-top: rgba(0,229,255,0.02); --fill-neg-bot: rgba(0,229,255,0.28);
+  }
+  /* ── Earth/Mountain theme ── */
+  body.theme-earth {
+    --bg: #0a0600; --surface: #180e00; --border: #382200;
+    --text: #fff9ee; --muted: #7a5a28; --accent: #ffab00; --chart-bg: #180e00;
+    --food: #b2ff59; --bmr: #ff3d00; --exercise: #40c4ff; --now: #ffffff;
+    --deficit: #ff6d00;
+    --gradient-line1: #e65100; --gradient-line2: #ffab00; --gradient-line3: #ffe57f;
+    --fill-pos-top: rgba(255,171,0,0.32); --fill-pos-bot: rgba(255,171,0,0.02);
+    --fill-neg-top: rgba(178,255,89,0.02); --fill-neg-bot: rgba(178,255,89,0.28);
+  }
+  /* ── Neon/Cyberpunk theme ── */
+  body.theme-neon {
+    --bg: #010008; --surface: #06001a; --border: #140040;
+    --text: #ffffff; --muted: #6020b0; --accent: #d500f9; --chart-bg: #06001a;
+    --food: #00ff41; --bmr: #ff6600; --exercise: #00e5ff; --now: #ffff00;
+    --deficit: #ff0055;
+    --gradient-line1: #9500d9; --gradient-line2: #d500f9; --gradient-line3: #ff80ff;
+    --fill-pos-top: rgba(213,0,249,0.32); --fill-pos-bot: rgba(213,0,249,0.02);
+    --fill-neg-top: rgba(0,255,65,0.02); --fill-neg-bot: rgba(0,255,65,0.32);
+  }
+  /* ── Sunset theme ── */
+  body.theme-sunset {
+    --bg: #08000a; --surface: #150010; --border: #380028;
+    --text: #fff0fa; --muted: #803060; --accent: #ff4081; --chart-bg: #150010;
+    --food: #ffff00; --bmr: #ff6d00; --exercise: #ea80fc; --now: #ffffff;
+    --deficit: #ff1744;
+    --gradient-line1: #ad1457; --gradient-line2: #ff4081; --gradient-line3: #ff80ab;
+    --fill-pos-top: rgba(255,64,129,0.32); --fill-pos-bot: rgba(255,64,129,0.02);
+    --fill-neg-top: rgba(255,255,0,0.02); --fill-neg-bot: rgba(255,255,0,0.28);
+    --deficit: #ff1744; --gradient-top: rgba(255,87,34,0.2);
+    --gradient-line1: #ff5722; --gradient-line2: #ff8a65; --gradient-line3: #ffccbc;
+    --fill-pos-top: rgba(255,138,101,0.3); --fill-pos-bot: rgba(255,138,101,0.03);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html, body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; overscroll-behavior: none; transition: background 0.25s, color 0.25s; }
@@ -150,6 +212,12 @@
   .sex-btns { display: flex; gap: 6px; }
   .sex-btn { flex: 1; padding: 8px 4px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); font-family: inherit; font-size: 12px; cursor: pointer; color: var(--muted); font-weight: 500; transition: all 0.15s; }
   .sex-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(124,58,237,0.08); }
+  .theme-sel-btn { padding:9px 6px; border-radius:7px; border:1px solid var(--border); background:var(--bg); font-family:inherit; font-size:11px; font-weight:600; color:var(--muted); cursor:pointer; transition:all 0.15s; text-align:center; }
+  .theme-sel-btn.active { border:2px solid var(--accent); background:rgba(124,58,237,0.1); color:var(--text); }
+  .settings-section-label { font-size:10px; color:var(--muted); letter-spacing:0.1em; font-weight:700; text-transform:uppercase; margin-bottom:8px; }
+  .settings-btn-pair { flex:1; padding:10px 6px; border-radius:7px; border:1px solid var(--border); background:var(--bg); font-family:inherit; font-size:12px; font-weight:600; color:var(--muted); cursor:pointer; transition:all 0.15s; }
+  .settings-btn-pair.active-btn { border:2px solid var(--accent); background:rgba(124,58,237,0.1); color:var(--text); }
+  .settings-btn-full { width:100%; padding:10px; border-radius:7px; border:1px solid var(--border); background:none; color:var(--muted); font-family:inherit; font-size:12px; font-weight:600; cursor:pointer; }
   .tooltip-btn { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; border:1px solid var(--muted); color:var(--muted); font-size:10px; cursor:pointer; margin-left:5px; font-weight:700; line-height:1; vertical-align:middle; }
   .tooltip-box { display:none; font-size:11px; color:var(--muted); background:rgba(251,191,36,0.05); border:1px solid rgba(251,191,36,0.2); border-radius:6px; padding:9px 11px; margin-bottom:10px; line-height:1.6; }
   .tooltip-box.open { display:block; }
@@ -164,53 +232,98 @@
 
   <!-- Settings overlay -->
   <div id="settingsOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:200;" onclick="closeSettings()"></div>
-  <div id="settingsPanel" style="display:none; position:fixed; top:0; right:0; width:min(320px,90vw); height:100vh; background:var(--surface); border-left:1px solid var(--border); z-index:201; padding:20px 16px; overflow-y:auto; flex-direction:column; gap:0;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-      <span style="font-size:14px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--text)">Settings</span>
-      <button onclick="closeSettings()" style="background:none; border:none; color:var(--muted); font-size:22px; cursor:pointer; line-height:1;">×</button>
+  <div id="settingsPanel" style="display:none; position:fixed; top:0; right:0; width:min(340px,92vw); height:100vh; background:var(--surface); border-left:1px solid var(--border); z-index:201; padding:0; overflow-y:auto; flex-direction:column;">
+
+    <!-- Panel Header -->
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:18px 18px 14px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--surface); z-index:1;">
+      <span style="font-size:15px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--text);">Settings</span>
+      <button onclick="closeSettings()" style="background:none; border:none; color:var(--muted); font-size:24px; cursor:pointer; line-height:1; padding:0 4px;">×</button>
     </div>
 
-    <!-- Theme -->
-    <div style="font-size:10px; color:var(--muted); letter-spacing:0.1em; font-weight:600; text-transform:uppercase; margin-bottom:8px;">Appearance</div>
-    <div style="display:flex; gap:6px; margin-bottom:20px;">
-      <button onclick="setTheme('dark')" id="theme-dark" style="flex:1; padding:9px; border-radius:7px; border:2px solid var(--accent); background:rgba(124,58,237,0.08); font-family:inherit; font-size:12px; font-weight:600; color:var(--text); cursor:pointer;">🌙 Dark</button>
-      <button onclick="setTheme('light')" id="theme-light" style="flex:1; padding:9px; border-radius:7px; border:1px solid var(--border); background:var(--bg); font-family:inherit; font-size:12px; font-weight:600; color:var(--muted); cursor:pointer;">☀️ Light</button>
+    <div style="padding:16px 18px 40px; display:flex; flex-direction:column; gap:20px;">
+
+      <!-- 1. Tracker Mode -->
+      <div>
+        <div class="settings-section-label">Tracker Mode</div>
+        <div style="display:flex; gap:6px;">
+          <button onclick="setTrackerMode('glycogen')" id="mode-glycogen" class="settings-btn-pair active-btn">🔬 Glycogen</button>
+          <button onclick="setTrackerMode('calorie')"  id="mode-calorie"  class="settings-btn-pair">💰 Calorie</button>
+        </div>
+        <div id="mode-desc" style="display:none; font-size:10px; color:var(--muted); margin-top:8px; line-height:1.55; padding:8px 10px; background:rgba(124,58,237,0.05); border-radius:6px; border:1px solid var(--border);"></div>
+      </div>
+
+      <!-- 2. Units -->
+      <div>
+        <div class="settings-section-label">Units</div>
+        <div style="display:flex; gap:6px;">
+          <button onclick="toggleImperial(false)" id="unit-metric"   class="settings-btn-pair active-btn">⚖️ Metric (kg)</button>
+          <button onclick="toggleImperial(true)"  id="unit-imperial" class="settings-btn-pair">🇺🇸 Imperial (lb)</button>
+        </div>
+      </div>
+
+      <!-- 3. Drain Rate / BMR -->
+      <div>
+        <div class="settings-section-label">Drain Rate / BMR</div>
+        <div style="font-size:14px; color:var(--accent); font-family:'DM Mono',monospace; font-weight:700; margin-bottom:8px;" id="settingsDrainVal">~1,940 kcal/day</div>
+        <button onclick="closeSettings(); setTimeout(toggleBmrCalc,100);" class="settings-btn-full">⚙️ Edit Drain Rate / BMR</button>
+      </div>
+
+      <!-- 4. Theme -->
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div class="settings-section-label" style="margin-bottom:0;">Theme</div>
+          <button onclick="toggleThemePanel()" id="theme-toggle-btn" style="font-size:11px; color:var(--accent); background:none; border:none; cursor:pointer; font-family:inherit; font-weight:600;">Show ▾</button>
+        </div>
+        <div id="theme-panel" style="display:none;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px;" id="theme-buttons">
+            <button onclick="setTheme('dark')"    class="theme-sel-btn" id="tbtn-dark"   >🌙 Dark</button>
+            <button onclick="setTheme('light')"   class="theme-sel-btn" id="tbtn-light"  >☀️ Light</button>
+            <button onclick="setTheme('forest')"  class="theme-sel-btn" id="tbtn-forest" >🌲 Forest</button>
+            <button onclick="setTheme('ocean')"   class="theme-sel-btn" id="tbtn-ocean"  >🌊 Ocean</button>
+            <button onclick="setTheme('earth')"   class="theme-sel-btn" id="tbtn-earth"  >🏔️ Earth</button>
+            <button onclick="setTheme('neon')"    class="theme-sel-btn" id="tbtn-neon"   >⚡ Neon</button>
+            <button onclick="setTheme('sunset')"  class="theme-sel-btn" id="tbtn-sunset" >🌅 Sunset</button>
+            <button onclick="setRandomTheme()"    class="theme-sel-btn" id="tbtn-random" >🎲 Random</button>
+          </div>
+          <label style="display:flex; align-items:center; gap:8px; font-size:11px; color:var(--muted); cursor:pointer;">
+            <input type="checkbox" id="randomOnOpen" onchange="toggleRandomOnOpen(this.checked)" style="width:14px;height:14px;accent-color:var(--accent);">
+            Random theme each time app opens
+          </label>
+        </div>
+      </div>
+
+      <!-- 5. Backup & Data -->
+      <div>
+        <div class="settings-section-label">Backup & Data</div>
+        <div style="font-size:11px; color:var(--muted); margin-bottom:8px; line-height:1.5;" id="backup-info">Checking backup...</div>
+        <div style="display:flex; gap:6px; margin-bottom:8px;">
+          <button onclick="exportData()" class="settings-btn-pair" style="color:var(--accent); border-color:var(--accent);">⬇ Export</button>
+          <label class="settings-btn-pair" style="color:var(--accent); border-color:var(--accent); text-align:center; cursor:pointer;">
+            ⬆ Import<input type="file" accept=".json" onchange="importData(event)" style="display:none;">
+          </label>
+        </div>
+        <!-- Error Log -->
+        <button onclick="toggleErrorLog()" style="width:100%; padding:8px 10px; border-radius:7px; border:1px solid var(--border); background:none; color:var(--muted); font-family:inherit; font-size:11px; cursor:pointer; text-align:left; margin-bottom:6px;">
+          🔍 Error Log <span id="error-count" style="color:var(--deficit);font-weight:700;"></span>
+        </button>
+        <div id="error-log-panel" style="display:none; background:var(--bg); border-radius:8px; border:1px solid var(--border); padding:10px; max-height:280px; overflow-y:auto; margin-bottom:8px; font-size:10px; font-family:'DM Mono',monospace; line-height:1.6;">
+          <div id="error-log-content" style="color:var(--muted);">No errors logged ✓</div>
+        </div>
+      </div>
+
+      <!-- 6. Reset -->
+      <div>
+        <div class="settings-section-label">Reset</div>
+        <button onclick="resetGlyco()" class="settings-btn-full" style="color:var(--deficit); border-color:var(--deficit); margin-bottom:8px;">⟳ Reset Glyco data</button>
+        <button onclick="resetCalo()"  class="settings-btn-full" style="color:#f97316; border-color:#f97316;">⟳ Reset Calo data</button>
+      </div>
+
     </div>
-
-    <!-- Units -->
-    <div style="font-size:10px; color:var(--muted); letter-spacing:0.1em; font-weight:600; text-transform:uppercase; margin-bottom:8px;">Units</div>
-    <div style="display:flex; gap:6px; margin-bottom:20px;">
-      <button onclick="toggleImperial(false)" id="unit-metric" style="flex:1; padding:9px; border-radius:7px; border:2px solid var(--accent); background:rgba(124,58,237,0.08); font-family:inherit; font-size:12px; font-weight:600; color:var(--text); cursor:pointer;">⚖️ Metric (kg)</button>
-      <button onclick="toggleImperial(true)" id="unit-imperial" style="flex:1; padding:9px; border-radius:7px; border:1px solid var(--border); background:var(--bg); font-family:inherit; font-size:12px; font-weight:600; color:var(--muted); cursor:pointer;">🇺🇸 Imperial (lb)</button>
-    </div>
-
-    <!-- Drain Rate -->
-    <div style="font-size:10px; color:var(--muted); letter-spacing:0.1em; font-weight:600; text-transform:uppercase; margin-bottom:8px;">Drain Rate</div>
-    <div style="font-size:12px; color:var(--muted); margin-bottom:8px;" id="settingsDrainVal">~1,940 kcal/day</div>
-    <button onclick="closeSettings(); toggleBmrCalc();" style="width:100%; padding:10px; border-radius:7px; border:1px solid var(--accent); background:none; color:var(--accent); font-family:inherit; font-size:12px; font-weight:600; cursor:pointer; margin-bottom:20px;">⚙️ Edit Drain Rate / BMR</button>
-
-    <!-- Tracker Mode -->
-    <div style="font-size:10px; color:var(--muted); letter-spacing:0.1em; font-weight:600; text-transform:uppercase; margin-bottom:8px; margin-top:4px;">Tracker Mode</div>
-    <div style="display:flex; gap:6px; margin-bottom:6px;">
-      <button onclick="setTrackerMode('glycogen')" id="mode-glycogen" style="flex:1; padding:9px; border-radius:7px; border:2px solid var(--accent); background:rgba(124,58,237,0.08); font-family:inherit; font-size:11px; font-weight:600; color:var(--text); cursor:pointer;">🔬 Glycogen</button>
-      <button onclick="setTrackerMode('calorie')" id="mode-calorie" style="flex:1; padding:9px; border-radius:7px; border:1px solid var(--border); background:var(--bg); font-family:inherit; font-size:11px; font-weight:600; color:var(--muted); cursor:pointer;">💰 Calorie</button>
-    </div>
-    <div id="mode-desc" style="font-size:10px; color:var(--muted); margin-bottom:20px; line-height:1.5; padding:7px 9px; background:rgba(124,58,237,0.04); border-radius:6px; border:1px solid var(--border);"></div>
-
-    <!-- Reset -->
-    <div style="font-size:10px; color:var(--muted); letter-spacing:0.1em; font-weight:600; text-transform:uppercase; margin-bottom:8px;">Data</div>
-    <button onclick="resetAll()" style="width:100%; padding:10px; border-radius:7px; border:1px solid var(--deficit); background:none; color:var(--deficit); font-family:inherit; font-size:12px; font-weight:600; cursor:pointer;">⟳ Reset all counters</button>
   </div>
 
   <div class="header">
     <div style="flex:1; min-width:0;">
       <h1 id="appTitle">Glyco Tracker</h1>
-      <div class="bmr-bar" onclick="toggleBmrCalc()" title="Edit BMR settings">
-        <span style="font-size:11px; color:var(--muted); font-weight:500;">⚙️ DRAIN RATE</span>
-        <span class="bmr-bar-val" id="bmrBarVal">~1,940 kcal/day</span>
-        <span class="bmr-edit-btn" style="font-size:10px; color:var(--accent); font-weight:600; margin-left:2px; letter-spacing:0.04em;">EDIT ▾</span>
-        <span class="bmr-bar-arrow" id="bmrArrow" style="display:none"></span>
-      </div>
     </div>
     <div style="display:flex; align-items:flex-start; padding-top:2px;">
       <button onclick="openSettings()" style="background:none; border:1px solid var(--border); border-radius:8px; padding:5px 9px; font-size:16px; color:var(--muted); cursor:pointer; line-height:1;">⚙️</button>
@@ -379,16 +492,33 @@
     </div>
   </div>
 
-  <!-- Stats — calorie mode: single wide card -->
-  <div id="stats-calorie" style="display:none; background:var(--surface); border-radius:8px; border:1px solid var(--border); padding:12px 14px; margin-bottom:14px;">
-    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px;">
-      <div class="stat-label" id="calorie-main-label">DEFICIT CALORIES BURNED</div>
-      <div class="stat-sub" id="calo-time" style="text-align:right;"></div>
+  <!-- Stats — calorie mode: two section card -->
+  <div id="stats-calorie" style="display:none; margin-bottom:14px;">
+    <!-- All-time net -->
+    <div style="background:var(--surface); border-radius:8px; border:1px solid var(--border); padding:10px 14px; margin-bottom:8px;">
+      <div class="stat-label" id="calo-alltime-label">ALL-TIME DEFICIT BURNED</div>
+      <div class="stat-val" id="calo-alltime-val" style="margin-top:3px;">0 kcal</div>
+      <div class="stat-sub" id="calo-alltime-sub">since first log</div>
     </div>
-    <div class="stat-val" id="calo-balance-val" style="margin-top:2px; margin-bottom:8px;">0 kcal</div>
-    <div id="toZeroHint2" style="display:none;"></div>
-    <div style="border-top:1px solid var(--border); margin:8px 0 6px;"></div>
-    <div id="calorie-periods" style="display:flex; flex-direction:column; gap:6px;"></div>
+    <!-- Period view -->
+    <div style="background:var(--surface); border-radius:8px; border:1px solid var(--border); padding:10px 14px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div class="stat-label" id="calo-period-label">LAST 24H</div>
+        <div class="stat-sub" id="calo-time" style="text-align:right;"></div>
+      </div>
+      <!-- Period selector -->
+      <div style="display:flex; gap:4px; flex-wrap:wrap; margin-bottom:10px;">
+        <button class="chart-btn" id="cpbtn-1D"  onclick="setCaloPeriod('1D')" >24h</button>
+        <button class="chart-btn" id="cpbtn-3D"  onclick="setCaloPeriod('3D')" >3D</button>
+        <button class="chart-btn" id="cpbtn-7D"  onclick="setCaloPeriod('7D')" >1W</button>
+        <button class="chart-btn" id="cpbtn-1M"  onclick="setCaloPeriod('1M')" >1M</button>
+        <button class="chart-btn" id="cpbtn-6M"  onclick="setCaloPeriod('6M')" >6M</button>
+        <button class="chart-btn" id="cpbtn-1Y"  onclick="setCaloPeriod('1Y')" >1Y</button>
+        <button class="chart-btn" id="cpbtn-ALL" onclick="setCaloPeriod('ALL')">ALL</button>
+      </div>
+      <div class="stat-val" id="calo-period-val" style="margin-top:2px;">0 kcal</div>
+      <div class="stat-sub" id="calo-period-sub">starting from zero</div>
+    </div>
   </div>
 
   <!-- hidden elements kept for JS compatibility -->
@@ -428,6 +558,15 @@
       <div class="type-btns">
         <button class="type-btn sel-food" id="btn-food" onclick="selType('food')">🍽 Food</button>
         <button class="type-btn" id="btn-exercise" onclick="selType('exercise')">💪 Exercise</button>
+      </div>
+      <div id="duration-row" style="display:none; margin-bottom:10px;">
+        <div class="field">
+          <label>SESSION DURATION <span style="font-size:10px; color:var(--muted); font-weight:400;">(how long was the session?)</span></label>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input type="number" id="f-duration" value="30" min="1" max="300" inputmode="numeric" style="width:80px;">
+            <span style="font-size:13px; color:var(--muted);">minutes</span>
+          </div>
+        </div>
       </div>
       <div id="swim-hint" class="swim-hint" style="display:none">
         🏊 1km swim ≈ <strong>320 kcal</strong> at moderate freestyle pace. Adjust ±30 kcal for intensity.
@@ -489,7 +628,9 @@ let viewRange = '1D';
 let showKg = false;
 let useImperial = false;
 let resetMs = 0;
-let cumulativeDeficit = 0; // cumulative deficit — never decreases when food is logged
+let cumulativeDeficit = 0;
+let _appReady = false; // true after safeInit completes
+let caloPeriod = '1D'; // selected period in calo mode // cumulative deficit — never decreases when food is logged
 
 // ── Persistence ──────────────────────────────────────────────
 function saveLogs() {
@@ -532,8 +673,8 @@ function markDirty() { _logsDirty = true; }
 
 function rebuildIndex() {
   if (!_logsDirty) return;
-  _foodSorted = logs.filter(l => l.type === 'food').map(l => ({ts: l.ts, kcal: l.kcal})).sort((a,b) => a.ts - b.ts);
-  _exSorted   = logs.filter(l => l.type === 'exercise').map(l => ({ts: l.ts, kcal: l.kcal})).sort((a,b) => a.ts - b.ts);
+  _foodSorted = logs.filter(l => l.type === 'food').map(l => ({ts: l.ts, kcal: l.kcal, id: l.id, duration: l.duration||30})).sort((a,b) => a.ts - b.ts);
+  _exSorted   = logs.filter(l => l.type === 'exercise').map(l => ({ts: l.ts, kcal: l.kcal, id: l.id, duration: l.duration||30})).sort((a,b) => a.ts - b.ts);
   _logsDirty  = false;
 }
 
@@ -576,75 +717,155 @@ function getMaxGlycogen() {
   } catch { return 2000; }
 }
 
-// Simulate glycogen step by step through events
-// Returns { balance, totalOverfill, totalDeficitKcal }
-// balance: current glycogen (0 to maxGlyco)
-// totalOverfill: cumulative kcal eaten beyond max (→ fat gain)
-// totalDeficitKcal: cumulative kcal of drain while at zero (→ fat burned)
+// ── Smooth event curves ───────────────────────────────────────
+// Food: gradual rise starting 30 min BEFORE log time, completing at log time
+// Exercise: gradual burn starting (duration) min BEFORE log time, completing at log time
+// Both use a sinusoidal ease-in-out curve for realism
+//
+// For simulation we convert each event into a stream of micro-increments
+// applied every SMOOTH_STEP ms, so the chart sees a smooth curve
+
+const FOOD_ABSORB_MS  = 30 * 60000; // 30 min absorption window
+const SMOOTH_STEP     = 2 * 60000;  // 2 min resolution for smooth curves
+
+// Get the effective log entries with their spread windows
+function getSpreadLogs() {
+  return logs.map(l => {
+    const duration = (l.duration && l.duration > 0) ? l.duration : 30;
+    const spreadMs = duration * 60000;
+    if (l.type === 'food') {
+      // Food: starts absorbing 30 min before logged time, finishes at logged time
+      return { ...l, startTs: l.ts - FOOD_ABSORB_MS, endTs: l.ts };
+    } else {
+      // Exercise: session started (duration) min before logged time, ended at logged time
+      return { ...l, startTs: l.ts - spreadMs, endTs: l.ts };
+    }
+  });
+}
+
+// Get the fraction of an event completed at a given timestamp (0 to 1)
+// Uses ease-in-out sine curve for smooth feel
+function eventFraction(startTs, endTs, atMs) {
+  if (atMs <= startTs) return 0;
+  if (atMs >= endTs)   return 1;
+  const t = (atMs - startTs) / (endTs - startTs); // 0..1 linear
+  // ease-in-out: smoother start and end
+  return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+}
+
+// Simulate glycogen with smooth curves
 function simulateGlycogen(toMs) {
   rebuildIndex();
   const startMs = getStartMs();
   const maxGlyco = getMaxGlycogen();
   if (toMs <= startMs) return { balance: 0, overfill: 0, deficitKcal: 0, maxGlyco };
 
-  const events = [
-    ..._foodSorted.filter(e => e.ts <= toMs).map(e => ({ ts: e.ts, type: 'food', kcal: e.kcal })),
-    ..._exSorted.filter(e => e.ts <= toMs).map(e => ({ ts: e.ts, type: 'ex', kcal: e.kcal })),
-  ].sort((a, b) => a.ts - b.ts);
+  const spreadLogs = getSpreadLogs().filter(l => l.endTs >= startMs);
+
+  // Build a sorted timeline of all unique timestamps we need to sample
+  // Include: startMs, toMs, every event start/end, and regular intervals
+  const timestamps = new Set();
+  timestamps.add(startMs);
+  timestamps.add(toMs);
+  spreadLogs.forEach(l => {
+    if (l.startTs >= startMs && l.startTs <= toMs) timestamps.add(l.startTs);
+    if (l.endTs >= startMs && l.endTs <= toMs)     timestamps.add(l.endTs);
+  });
+  // Add regular sample points
+  for (let t = startMs; t <= toMs; t += SMOOTH_STEP) timestamps.add(t);
+  const timeline = Array.from(timestamps).sort((a, b) => a - b);
 
   let balance = 0;
   let totalOverfill = 0;
   let totalDeficitKcal = 0;
-  let prevTs = startMs;
 
-  const drainInterval = (fromTs, toTs) => {
-    const mins = Math.max(0, (toTs - fromTs) / 60000);
+  // Track how much of each event has been applied so far
+  const applied = new Map(spreadLogs.map(l => [l.id, 0])); // fraction applied
+
+  for (let i = 1; i < timeline.length; i++) {
+    const prevT = timeline[i - 1];
+    const currT = timeline[i];
+    if (currT > toMs) break;
+
+    // 1. BMR drain for this interval
+    const mins  = (currT - prevT) / 60000;
     const drain = mins * BMR_PER_MIN;
     if (balance >= drain) {
       balance -= drain;
     } else {
-      // Some or all drain goes into deficit
       totalDeficitKcal += (drain - balance);
       balance = 0;
     }
-  };
 
-  for (const ev of events) {
-    drainInterval(prevTs, ev.ts);
-    prevTs = ev.ts;
-    if (ev.type === 'food') {
-      const newBal = balance + ev.kcal;
-      if (newBal > maxGlyco) {
-        totalOverfill += newBal - maxGlyco;
-        balance = maxGlyco;
+    // 2. Apply incremental food/exercise for events active in this interval
+    for (const l of spreadLogs) {
+      if (l.startTs > currT || l.endTs < prevT) continue;
+      const fracNow  = eventFraction(l.startTs, l.endTs, currT);
+      const fracPrev = applied.get(l.id) || 0;
+      const delta    = (fracNow - fracPrev) * l.kcal;
+      if (delta <= 0) continue;
+      applied.set(l.id, fracNow);
+
+      if (l.type === 'food') {
+        const newBal = balance + delta;
+        if (newBal > maxGlyco) {
+          totalOverfill += newBal - maxGlyco;
+          balance = maxGlyco;
+        } else {
+          balance = newBal;
+        }
       } else {
-        balance = newBal;
-      }
-    } else {
-      balance = Math.max(0, balance - ev.kcal);
-      // Exercise beyond current balance also counts as deficit
-      if (ev.kcal > balance + ev.kcal) {
-        totalDeficitKcal += Math.max(0, ev.kcal - (balance + ev.kcal));
+        const actualBurn = Math.min(balance, delta);
+        balance -= actualBurn;
+        if (delta > actualBurn) totalDeficitKcal += (delta - actualBurn);
       }
     }
   }
-  drainInterval(prevTs, toMs);
 
-  const safeBalance   = isNaN(balance)        ? 0 : balance;
-  const safeOverfill  = isNaN(totalOverfill)  ? 0 : totalOverfill;
-  const safeDeficit   = isNaN(totalDeficitKcal) ? 0 : totalDeficitKcal;
+  const safeBalance  = isNaN(balance)           ? 0 : Math.max(0, balance);
+  const safeOverfill = isNaN(totalOverfill)      ? 0 : totalOverfill;
+  const safeDeficit  = isNaN(totalDeficitKcal)   ? 0 : totalDeficitKcal;
   return { balance: safeBalance, overfill: safeOverfill, deficitKcal: safeDeficit, maxGlyco };
 }
 
 function calcAt(toMs) {
   if (trackerMode === 'calorie') {
+    // Calorie mode uses the same smooth spread logic as glycogen
+    // but with no floor/cap — balance can go negative freely
     rebuildIndex();
-    const foodGained = sumUpTo(_foodSorted, toMs);
-    const exBurned   = sumUpTo(_exSorted,   toMs);
-    const startMs    = getStartMs();
-    const bmrBurned  = Math.max(0, (toMs - startMs) / 60000) * BMR_PER_MIN;
-    const raw = foodGained - exBurned - bmrBurned;
-    const safeRaw = isNaN(raw) ? 0 : raw;
+    const startMs = getStartMs();
+    if (toMs <= startMs) return { balance: 0, raw: 0, currentDeficit: 0, deficitKcal: 0, overfill: 0, maxGlyco: getMaxGlycogen() };
+
+    const spreadLogs = getSpreadLogs().filter(l => l.endTs >= startMs);
+    const timestamps = new Set([startMs, toMs]);
+    spreadLogs.forEach(l => {
+      if (l.startTs >= startMs && l.startTs <= toMs) timestamps.add(l.startTs);
+      if (l.endTs   >= startMs && l.endTs   <= toMs) timestamps.add(l.endTs);
+    });
+    for (let t = startMs; t <= toMs; t += SMOOTH_STEP) timestamps.add(t);
+    const timeline = Array.from(timestamps).sort((a, b) => a - b);
+
+    let balance = 0;
+    const applied = new Map(spreadLogs.map(l => [l.id, 0]));
+
+    for (let i = 1; i < timeline.length; i++) {
+      const prevT = timeline[i - 1];
+      const currT = timeline[i];
+      if (currT > toMs) break;
+      // BMR drains continuously (no floor in calorie mode)
+      balance -= ((currT - prevT) / 60000) * BMR_PER_MIN;
+      // Apply incremental food/exercise
+      for (const l of spreadLogs) {
+        if (l.startTs > currT || l.endTs < prevT) continue;
+        const fracNow  = eventFraction(l.startTs, l.endTs, currT);
+        const fracPrev = applied.get(l.id) || 0;
+        const delta    = (fracNow - fracPrev) * l.kcal;
+        if (delta <= 0) continue;
+        applied.set(l.id, fracNow);
+        balance += l.type === 'food' ? delta : -delta;
+      }
+    }
+    const safeRaw = isNaN(balance) ? 0 : balance;
     return { balance: safeRaw, raw: safeRaw, currentDeficit: 0, deficitKcal: 0, overfill: 0, maxGlyco: getMaxGlycogen() };
   }
 
@@ -753,53 +974,12 @@ function updateBalance() {
   if (glycoPanel)   glycoPanel.style.display   = trackerMode === 'glycogen' ? 'grid' : 'none';
   if (caloriePanel) caloriePanel.style.display = trackerMode === 'calorie'  ? 'block' : 'none';
 
-  // Update calorie mode main label and value color
+  // Update calorie mode
   if (trackerMode === 'calorie') {
-    const { balance: calBal } = calcAt(nowMs());
-    const mainLabel = document.getElementById('calorie-main-label');
-    const balEl     = document.getElementById('calo-balance-val');
-    const timeEl    = document.getElementById('calo-time');
-    if (mainLabel) mainLabel.textContent = calBal > 0 ? 'EXCESS CALORIES GAINED' : 'DEFICIT CALORIES BURNED';
-    if (balEl) {
-      balEl.textContent = (calBal > 0 ? '+' : '') + Math.round(calBal) + ' kcal';
-      balEl.style.color = calBal > 0 ? '#f97316' : '#22c55e';
-    }
-    if (timeEl) timeEl.textContent = fmtTime(nowMs());
+    updateCaloPeriodDisplay();
   }
 
-  // Calorie mode: render period summaries
-  if (trackerMode === 'calorie') {
-    const periods = [
-      { label: '1D', ms: 86400000 },
-      { label: '3D', ms: 3 * 86400000 },
-      { label: '7D', ms: 7 * 86400000 },
-      { label: '1M', ms: 30 * 86400000 },
-    ];
-    const periodsEl = document.getElementById('calorie-periods');
-    if (periodsEl) {
-      periodsEl.innerHTML = periods.map(p => {
-        const fromMs = now - p.ms;
-        const startMs = getStartMs();
-        if (fromMs < startMs && startMs > now - 86400000 * 2) return ''; // not enough data
-        const { balance: bal } = calcAt(now);
-        // Compute net over this period
-        rebuildIndex();
-        const foodInPeriod = _foodSorted.filter(e => e.ts >= fromMs && e.ts <= now).reduce((a,e) => a+e.kcal, 0);
-        const exInPeriod   = _exSorted.filter(e => e.ts >= fromMs && e.ts <= now).reduce((a,e) => a+e.kcal, 0);
-        const periodMins   = Math.min(p.ms, now - startMs) / 60000;
-        const bmrInPeriod  = periodMins * BMR_PER_MIN;
-        const net = foodInPeriod - exInPeriod - bmrInPeriod;
-        const isGain = net > 0;
-        const absNet = Math.abs(Math.round(net));
-        if (absNet < 5) return '<div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted);">' + p.label + '</span><span style="color:#fbbf24;">balanced</span></div>';
-        return '<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;">' +
-          '<span style="color:var(--muted);font-weight:500;">' + p.label + '</span>' +
-          '<span style="color:' + (isGain?'#f97316':'#22c55e') + ';font-weight:700;font-family:DM Mono,monospace;">' + (isGain?'+':'-') + absNet + ' kcal</span>' +
-          '<span style="color:var(--muted);font-size:10px;">' + (isGain?'excess gained':'deficit burned') + '</span>' +
-          '</div>';
-      }).filter(Boolean).join('');
-    }
-  }
+
 
   // Net fat balance display
   const netKcal  = Math.round(cumulativeDeficit); // positive = burned, negative = gained
@@ -838,8 +1018,8 @@ function toggleUnit() {
 function toggleImperial(val) {
   useImperial = val;
   localStorage.setItem(UNIT_KEY, val ? 'imperial' : 'metric');
-  updateBalance();
-  closeSettings();
+  try { updateBalance(); } catch(e) {}
+  syncSettingsState();
 }
 
 // ── Chart ─────────────────────────────────────────────────────
@@ -862,7 +1042,9 @@ function initViewButtons() {
 
 function drawChart() {
   const canvas = document.getElementById('chart');
+  if (!canvas) return;
   const ctx = canvas.getContext('2d');
+  const cs = getComputedStyle(document.body); // theme colors — declared once at top
   const dpr = window.devicePixelRatio || 1;
   const W = canvas.parentElement.clientWidth - 12;
   const H = 260;
@@ -989,8 +1171,10 @@ function drawChart() {
   ctx.lineTo(xP(samples[samples.length-1].ms), zeroY);
   ctx.closePath();
   const gfPos = ctx.createLinearGradient(0, PAD.top, 0, zeroY);
-  gfPos.addColorStop(0, 'rgba(168,85,247,0.28)');
-  gfPos.addColorStop(1, 'rgba(168,85,247,0.03)');
+  const fillPosTop = cs.getPropertyValue('--fill-pos-top').trim() || 'rgba(168,85,247,0.28)';
+  const fillPosBot = cs.getPropertyValue('--fill-pos-bot').trim() || 'rgba(168,85,247,0.03)';
+  gfPos.addColorStop(0, fillPosTop);
+  gfPos.addColorStop(1, fillPosBot);
   ctx.fillStyle = gfPos; ctx.fill();
 
   // Negative fill (below zero — calorie mode)
@@ -1012,23 +1196,31 @@ function drawChart() {
     ctx.fillRect(PAD.left, PAD.top + CH - 1, CW, 1);
   }
 
-  // Main line
+  // Main line — use theme colors (cs declared at top of drawChart)
+  const lineCol1 = cs.getPropertyValue('--gradient-line1').trim() || '#7c3aed';
+  const lineCol2 = cs.getPropertyValue('--gradient-line2').trim() || '#a78bfa';
+  const lineCol3 = cs.getPropertyValue('--gradient-line3').trim() || '#c4b5fd';
   const lg = ctx.createLinearGradient(PAD.left, 0, PAD.left + CW, 0);
-  lg.addColorStop(0, '#7c3aed'); lg.addColorStop(0.5, '#a78bfa'); lg.addColorStop(1, '#c4b5fd');
-  ctx.strokeStyle = lg; ctx.lineWidth = 1.8; ctx.lineJoin = 'round';
+  lg.addColorStop(0, lineCol1); lg.addColorStop(0.5, lineCol2); lg.addColorStop(1, lineCol3);
+  ctx.strokeStyle = lg; ctx.lineWidth = 2; ctx.lineJoin = 'round';
   ctx.beginPath();
   samples.forEach((s, i) => i === 0 ? ctx.moveTo(xP(s.ms), yP(s.val)) : ctx.lineTo(xP(s.ms), yP(s.val)));
   ctx.stroke();
 
-  // Event dots
+  // Event dots — show at the START of absorption/session window
   logs.forEach(l => {
-    if (l.ts < chartStartMs || l.ts > endMs) return;
-    const x = xP(l.ts);
-    const y = yP(calcAt(l.ts).balance);
+    const dotTs = l.type === 'food'
+      ? l.ts - FOOD_ABSORB_MS   // food starts absorbing 30min before logged
+      : l.ts - ((l.duration||30) * 60000); // exercise starts (duration) min before logged
+    const clampedTs = Math.max(chartStartMs, dotTs);
+    if (clampedTs > endMs) return;
+    const x = xP(clampedTs);
+    const y = yP(calcAt(clampedTs).balance);
     const color = l.type === 'food' ? '#22c55e' : '#3b82f6';
     ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2);
     ctx.fillStyle = color; ctx.fill();
-    ctx.strokeStyle = '#111318'; ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--chart-bg').trim() || '#111318';
+    ctx.lineWidth = 1.2; ctx.stroke();
   });
 
   // NOW line
@@ -1104,7 +1296,10 @@ function addEntry() {
   const [yr, mo, dy] = dateVal.split('-').map(Number);
   const ts = new Date(yr, mo-1, dy, hh, mm, 0, 0).getTime();
 
-  logs.push({ id: Date.now(), type: selectedType, kcal, ts, label: label || (selectedType === 'food' ? 'Food' : 'Exercise') });
+  const duration = selectedType === 'exercise'
+    ? (parseFloat(document.getElementById('f-duration').value) || 30)
+    : 30; // food absorption default 30 min
+  logs.push({ id: Date.now(), type: selectedType, kcal, ts, label: label || (selectedType === 'food' ? 'Food' : 'Exercise'), duration });
   logs.sort((a,b) => a.ts - b.ts);
   markDirty();
   saveLogs();
@@ -1115,7 +1310,8 @@ function addEntry() {
   setDefaultInputs();
 
   showToast(`Added: ${label || selectedType} (${selectedType==='food'?'+':'-'}${kcal} kcal)`);
-  updateBalance(); drawChart();
+  try { updateBalance(); } catch(e) {}
+  try { drawChart(); } catch(e) {}
 }
 
 // ── Log list ──────────────────────────────────────────────────
@@ -1155,20 +1351,33 @@ function removeEntry(id) {
   drawChart();
 }
 
-function resetAll() {
-  if (!confirm('Reset all counters and graph to zero right now?\n\nThis clears all entries and starts fresh from this moment.')) return;
-  logs = [];
+function resetGlyco() {
+  if (!confirm('Reset Glyco Tracker data?\n\nThis clears all glyco logs and restarts the glycogen balance from now.')) return;
+  // Remove only glyco-relevant logs (keep all — both modes share logs, but reset glyco start time)
+  logs = logs.filter(l => false); // clear all shared logs for now
   resetMs = Date.now();
   cumulativeDeficit = 0;
-  _deficitCache = null;
+  _simCache = null;
   markDirty();
   saveLogs();
   renderLog();
   updateBalance();
   drawChart();
   closeSettings();
-  showToast('Reset — starting fresh from now');
+  showToast('Glyco data reset');
 }
+
+function resetCalo() {
+  if (!confirm('Reset Calo Tracker data?\n\nThis clears the all-time calorie counter and starts fresh from now.')) return;
+  resetCaloMs = Date.now();
+  localStorage.setItem(RESET_CALO_KEY, String(resetCaloMs));
+  closeSettings();
+  updateBalance();
+  drawChart();
+  showToast('Calo data reset');
+}
+
+function resetAll() { resetGlyco(); }
 
 function clearAll() {
   if (!confirm('Delete all entries permanently?')) return;
@@ -1180,10 +1389,13 @@ function clearAll() {
 }
 
 // ── Toast ─────────────────────────────────────────────────────
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2200);
+function showToast(msg, duration) {
+  try {
+    const t = document.getElementById('toast');
+    if (!t) return;
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), duration || 2200);
+  } catch(e) {}
 }
 
 // ── BMR Calculator ───────────────────────────────────────────
@@ -1471,39 +1683,99 @@ function toggleBmrCalc(forceClose) {
   });
 });
 
+// ── Theme definitions ─────────────────────────────────────────
+const THEME_KEY  = 'glyco_v4_theme';
+const RANDOM_KEY = 'glyco_v4_random';
+const ALL_THEMES = ['dark','light','forest','ocean','earth','neon','sunset'];
+
+function applyTheme(theme) {
+  ALL_THEMES.forEach(t => document.body.classList.remove('theme-' + t));
+  document.body.classList.remove('light');
+  if (theme !== 'dark') document.body.classList.add('theme-' + theme);
+  localStorage.setItem(THEME_KEY, theme);
+  // Only redraw if app is fully initialized
+  if (typeof _appReady !== 'undefined' && _appReady) { try { drawChart(); } catch(e) {} }
+}
+
+function setTheme(theme) {
+  applyTheme(theme);
+  syncThemeButtons(theme);
+  localStorage.setItem(RANDOM_KEY, 'false');
+  const cb = document.getElementById('randomOnOpen');
+  if (cb) cb.checked = false;
+  try { drawChart(); } catch(e) {}
+}
+
+function setRandomTheme() {
+  const t = ALL_THEMES[Math.floor(Math.random() * ALL_THEMES.length)];
+  applyTheme(t);
+  syncThemeButtons(t);
+}
+
+function toggleRandomOnOpen(val) {
+  localStorage.setItem(RANDOM_KEY, val ? 'true' : 'false');
+}
+
+function syncThemeButtons(active) {
+  ALL_THEMES.forEach(t => {
+    const btn = document.getElementById('tbtn-' + t);
+    if (btn) btn.classList.toggle('active', t === active);
+  });
+  const rbtn = document.getElementById('tbtn-random');
+  if (rbtn) rbtn.classList.remove('active');
+}
+
+function loadTheme() {
+  const doRandom = localStorage.getItem(RANDOM_KEY) === 'true';
+  const saved    = localStorage.getItem(THEME_KEY) || 'dark';
+  const theme    = doRandom ? ALL_THEMES[Math.floor(Math.random() * ALL_THEMES.length)] : saved;
+  applyTheme(theme);
+  const cb = document.getElementById('randomOnOpen');
+  if (cb) cb.checked = doRandom;
+}
+
 // ── Settings Panel ────────────────────────────────────────────
-function openSettings() {
-  const panel = document.getElementById('settingsPanel');
-  const overlay = document.getElementById('settingsOverlay');
-  panel.style.display = 'flex';
-  overlay.style.display = 'block';
-  // Sync button states
-  const isLight = document.body.classList.contains('light');
-  document.getElementById('theme-dark').style.border  = isLight ? '1px solid var(--border)' : '2px solid var(--accent)';
-  document.getElementById('theme-dark').style.background  = isLight ? 'var(--bg)' : 'rgba(124,58,237,0.08)';
-  document.getElementById('theme-dark').style.color  = isLight ? 'var(--muted)' : 'var(--text)';
-  document.getElementById('theme-light').style.border = isLight ? '2px solid var(--accent)' : '1px solid var(--border)';
-  document.getElementById('theme-light').style.background = isLight ? 'rgba(124,58,237,0.08)' : 'var(--bg)';
-  document.getElementById('theme-light').style.color = isLight ? 'var(--text)' : 'var(--muted)';
-  document.getElementById('unit-metric').style.border   = useImperial ? '1px solid var(--border)' : '2px solid var(--accent)';
-  document.getElementById('unit-metric').style.background   = useImperial ? 'var(--bg)' : 'rgba(124,58,237,0.08)';
-  document.getElementById('unit-metric').style.color   = useImperial ? 'var(--muted)' : 'var(--text)';
-  document.getElementById('unit-imperial').style.border = useImperial ? '2px solid var(--accent)' : '1px solid var(--border)';
-  document.getElementById('unit-imperial').style.background = useImperial ? 'rgba(124,58,237,0.08)' : 'var(--bg)';
-  document.getElementById('unit-imperial').style.color = useImperial ? 'var(--text)' : 'var(--muted)';
-  document.getElementById('settingsDrainVal').textContent = document.getElementById('bmrBarVal').textContent;
-  // Sync tracker mode
+function syncSettingsState() {
+  // Tracker mode buttons
   ['glycogen','calorie'].forEach(m => {
     const btn = document.getElementById('mode-' + m);
     if (!btn) return;
-    btn.style.border   = m === trackerMode ? '2px solid var(--accent)' : '1px solid var(--border)';
-    btn.style.background = m === trackerMode ? 'rgba(124,58,237,0.08)' : 'var(--bg)';
-    btn.style.color    = m === trackerMode ? 'var(--text)' : 'var(--muted)';
+    btn.classList.toggle('active-btn', m === trackerMode);
   });
+  // Mode description
   const desc = document.getElementById('mode-desc');
-  if (desc) desc.textContent = trackerMode === 'glycogen'
-    ? '🔬 Glycogen mode: balance floors at zero. Deficit calories are tracked separately as fat burned. Goal: stay near zero = weight loss zone.'
-    : '💰 Calorie mode: bank balance. Positive = calorie surplus (weight gain territory). Negative = deficit (weight loss). Aim for new lows.';
+  if (desc) {
+    desc.textContent = trackerMode === 'glycogen'
+      ? '🔬 Balance floors at zero. Deficit = fat burned. Goal: keep near zero for weight loss.'
+      : '💰 Bank balance. Positive = surplus. Negative = deficit. Aim for new lows.';
+    desc.style.display = 'block';
+  }
+  // Units buttons
+  const uM = document.getElementById('unit-metric');
+  const uI = document.getElementById('unit-imperial');
+  if (uM) uM.classList.toggle('active-btn', !useImperial);
+  if (uI) uI.classList.toggle('active-btn', useImperial);
+  // Drain rate
+  const drainEl  = document.getElementById('bmrBarVal');
+  const drainDisp = document.getElementById('settingsDrainVal');
+  if (drainEl && drainDisp) drainDisp.textContent = drainEl.textContent;
+  // Theme buttons
+  const curTheme = localStorage.getItem(THEME_KEY) || 'dark';
+  syncThemeButtons(curTheme);
+  const cb = document.getElementById('randomOnOpen');
+  if (cb) cb.checked = localStorage.getItem(RANDOM_KEY) === 'true';
+  // Backup info + error count
+  try { updateBackupInfo(); } catch(e) {}
+  try { updateErrorCount(); } catch(e) {}
+}
+
+function openSettings() {
+  const panel = document.getElementById('settingsPanel');
+  const overlay = document.getElementById('settingsOverlay');
+  if (!panel || !overlay) return;
+  panel.style.display = 'flex';
+  overlay.style.display = 'block';
+  syncSettingsState();
 }
 
 function closeSettings() {
@@ -1511,57 +1783,274 @@ function closeSettings() {
   document.getElementById('settingsOverlay').style.display = 'none';
 }
 
+// ── Export / Import ───────────────────────────────────────────
+function exportData() {
+  try {
+    const data = {
+      version: 2,
+      exported: new Date().toISOString(),
+      logs,
+      resetMs,
+      resetCaloMs,
+      cumulativeDeficit,
+      bmrSettings: localStorage.getItem('glyco_bmr_settings'),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = 'glyco-backup-' + new Date().toISOString().slice(0,10) + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Export saved ✓');
+  } catch(e) {
+    logError('exportData', e);
+    showToast('Export failed — ' + e.message, 4000);
+  }
+}
+
+function importData(event) {
+  try {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (!data.logs || !Array.isArray(data.logs)) throw new Error('Invalid backup file');
+        if (!confirm('Import ' + data.logs.length + ' entries from ' + (data.exported || 'backup') + '?\n\nThis will REPLACE your current data.')) return;
+        logs = data.logs.filter(l => l && typeof l.ts === 'number' && typeof l.kcal === 'number');
+        if (data.resetMs)      resetMs      = data.resetMs;
+        if (data.resetCaloMs)  resetCaloMs  = data.resetCaloMs;
+        if (data.cumulativeDeficit) cumulativeDeficit = data.cumulativeDeficit;
+        if (data.bmrSettings) localStorage.setItem('glyco_bmr_settings', data.bmrSettings);
+        markDirty();
+        saveLogs();
+        updateBalance();
+        drawChart();
+        renderLog();
+        closeSettings();
+        showToast('Imported ' + logs.length + ' entries ✓', 3000);
+      } catch(err) {
+        logError('importData:parse', err);
+        showToast('Import failed — ' + err.message, 5000);
+      }
+    };
+    reader.readAsText(file);
+  } catch(e) {
+    logError('importData', e);
+  }
+}
+
+// ── Error log panel ───────────────────────────────────────────
+function toggleErrorLog() {
+  const panel = document.getElementById('error-log-panel');
+  if (!panel) return;
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) renderErrorLog();
+}
+
+function renderErrorLog() {
+  const el = document.getElementById('error-log-content');
+  if (!el) return;
+  if (!errorLog.length) { el.innerHTML = '<span style="color:var(--muted)">No errors logged ✓</span>'; return; }
+  el.innerHTML = [...errorLog].reverse().map(e =>
+    '<div style="margin-bottom:6px; padding-bottom:6px; border-bottom:1px solid var(--border);">' +
+    '<span style="color:var(--deficit);">' + e.time.replace('T',' ').slice(0,19) + '</span><br>' +
+    '<span style="color:var(--text);">[' + e.context + '] ' + e.message + '</span>' +
+    (e.stack ? '<br><span style="color:var(--muted);font-size:9px;">' + e.stack + '</span>' : '') +
+    '</div>'
+  ).join('');
+}
+
+function updateErrorCount() {
+  const el = document.getElementById('error-count');
+  if (el) el.textContent = errorLog.length > 0 ? '(' + errorLog.length + ')' : '';
+}
+
+function updateBackupInfo() {
+  const el = document.getElementById('backup-info');
+  if (!el) return;
+  const dt = localStorage.getItem(BACKUP_DATE_KEY);
+  const backupLogs = (() => { try { return JSON.parse(localStorage.getItem(BACKUP_KEY)||'[]'); } catch{return[];} })();
+  el.textContent = dt
+    ? 'Last backup: ' + dt + ' (' + backupLogs.length + ' entries)'
+    : 'No backup yet';
+}
+
 function setTrackerMode(mode) {
   trackerMode = mode;
   localStorage.setItem(MODE_KEY, mode);
-  updateBalance();
-  drawChart();
-  openSettings(); // re-sync
+  try { updateBalance(); } catch(e) {}
+  try { drawChart(); } catch(e) {}
+  syncSettingsState();
 }
 
-// ── Theme ─────────────────────────────────────────────────────
-function setTheme(theme) {
-  if (theme === 'light') {
-    document.body.classList.add('light');
-  } else {
-    document.body.classList.remove('light');
+function toggleThemePanel() {
+  const panel = document.getElementById('theme-panel');
+  const btn   = document.getElementById('theme-toggle-btn');
+  if (!panel) return;
+  const open = panel.style.display !== 'none';
+  panel.style.display = open ? 'none' : 'block';
+  if (btn) btn.textContent = open ? 'Show ▾' : 'Hide ▴';
+  if (!open) {
+    const cur = localStorage.getItem(THEME_KEY) || 'dark';
+    syncThemeButtons(cur);
+    const cb = document.getElementById('randomOnOpen');
+    if (cb) cb.checked = localStorage.getItem(RANDOM_KEY) === 'true';
   }
-  localStorage.setItem('glyco_theme', theme);
-  drawChart();
-  openSettings(); // re-sync button states
 }
 
-function toggleTheme() {
-  const isLight = document.body.classList.toggle('light');
-  localStorage.setItem('glyco_theme', isLight ? 'light' : 'dark');
-  drawChart();
+function setCaloPeriod(period) {
+  caloPeriod = period;
+  localStorage.setItem(CALO_PERIOD_KEY, period);
+  // Update button states
+  ['1D','3D','7D','1M','6M','1Y','ALL'].forEach(p => {
+    const btn = document.getElementById('cpbtn-' + p);
+    if (btn) btn.classList.toggle('active', p === period);
+  });
+  updateCaloPeriodDisplay();
 }
 
-function loadTheme() {
-  const saved = localStorage.getItem('glyco_theme');
-  if (saved === 'light') document.body.classList.add('light');
+function initCaloPeriodButtons() {
+  ['1D','3D','7D','1M','6M','1Y','ALL'].forEach(p => {
+    const btn = document.getElementById('cpbtn-' + p);
+    if (btn) btn.classList.toggle('active', p === caloPeriod);
+  });
 }
+
+function getCaloStartMs() {
+  // All-time start: first log after calo reset, or calo reset time
+  const relevantLogs = resetCaloMs > 0
+    ? logs.filter(l => l.ts >= resetCaloMs)
+    : logs;
+  if (relevantLogs.length === 0) return resetCaloMs > 0 ? resetCaloMs : Date.now();
+  return Math.min(...relevantLogs.map(l => l.ts));
+}
+
+function calcCaloNet(fromMs, toMs) {
+  // Calculate net calories from scratch within a window (starts at 0)
+  const periodMins = Math.max(0, (toMs - fromMs) / 60000);
+  const food = _foodSorted.filter(e => e.ts >= fromMs && e.ts <= toMs).reduce((a,e) => a+e.kcal, 0);
+  const ex   = _exSorted.filter(e => e.ts >= fromMs && e.ts <= toMs).reduce((a,e) => a+e.kcal, 0);
+  const bmr  = periodMins * BMR_PER_MIN;
+  return food - ex - bmr;
+}
+
+function updateCaloPeriodDisplay() {
+  const now = nowMs();
+  rebuildIndex();
+  const periodMsMap = { '1D': 86400000, '3D': 3*86400000, '7D': 7*86400000,
+    '1M': 30*86400000, '6M': 182*86400000, '1Y': 365*86400000 };
+
+  // Period net (starts from 0 at window start)
+  let periodFromMs;
+  if (caloPeriod === 'ALL') {
+    periodFromMs = getCaloStartMs();
+  } else {
+    periodFromMs = now - (periodMsMap[caloPeriod] || 86400000);
+  }
+  const periodNet = calcCaloNet(periodFromMs, now);
+  const periodIsGain = periodNet > 0;
+  const periodLabel = document.getElementById('calo-period-label');
+  const periodVal   = document.getElementById('calo-period-val');
+  const periodSub   = document.getElementById('calo-period-sub');
+  const periodLabels = { '1D':'LAST 24H','3D':'LAST 3 DAYS','7D':'LAST WEEK',
+    '1M':'LAST MONTH','6M':'LAST 6 MONTHS','1Y':'LAST YEAR','ALL':'ALL TIME' };
+  if (periodLabel) periodLabel.textContent = periodLabels[caloPeriod] || 'LAST 24H';
+  if (periodVal) {
+    periodVal.textContent = (periodIsGain?'+':'') + Math.round(periodNet) + ' kcal';
+    periodVal.style.color = periodIsGain ? '#f97316' : '#22c55e';
+  }
+  if (periodSub) periodSub.textContent = periodIsGain ? 'excess gained' : 'deficit burned';
+
+  // All-time net
+  const allFromMs = getCaloStartMs();
+  const allNet    = calcCaloNet(allFromMs, now);
+  const allIsGain = allNet > 0;
+  const allLabel  = document.getElementById('calo-alltime-label');
+  const allVal    = document.getElementById('calo-alltime-val');
+  const allSub    = document.getElementById('calo-alltime-sub');
+  if (allLabel) allLabel.textContent = allIsGain ? 'ALL-TIME EXCESS GAINED' : 'ALL-TIME DEFICIT BURNED';
+  if (allVal) {
+    allVal.textContent = (allIsGain?'+':'') + Math.round(allNet) + ' kcal';
+    allVal.style.color = allIsGain ? '#f97316' : '#22c55e';
+  }
+  if (allSub) allSub.textContent = 'since ' + (resetCaloMs > 0 ? fmtDate(resetCaloMs) : 'first log');
+  if (document.getElementById('calo-time')) document.getElementById('calo-time').textContent = fmtTime(now);
+}
+
+// (theme functions above)
 
 // ── Init ──────────────────────────────────────────────────────
-loadTheme();
-loadBmrSettings();
-loadLogs();
-useImperial = localStorage.getItem(UNIT_KEY) === 'imperial';
-trackerMode = localStorage.getItem(MODE_KEY) || 'glycogen';
-viewRange = localStorage.getItem(VIEW_KEY) || '1D';
-setDefaultInputs();
-updateBalance();
-drawChart();
-renderLog();
+// ── Self-healing init ─────────────────────────────────────────
+function safeInit() {
+  try { loadErrorLog(); } catch(e) {}
+  try { loadTheme(); } catch(e) { logError('loadTheme', e); }
+  try { loadBmrSettings(); } catch(e) { logError('loadBmrSettings', e); }
+  try { loadLogs(); } catch(e) { logError('loadLogs', e); logs = []; markDirty(); }
+  try {
+    useImperial = localStorage.getItem(UNIT_KEY) === 'imperial';
+    trackerMode = localStorage.getItem(MODE_KEY) || 'glycogen';
+    viewRange   = localStorage.getItem(VIEW_KEY) || '1D';
+  } catch(e) { console.warn('Prefs load failed:', e); }
+  try { setDefaultInputs(); } catch(e) {}
+  try { updateBalance(); } catch(e) { console.warn('updateBalance failed:', e); }
+  try { drawChart(); } catch(e) { console.warn('drawChart failed:', e); }
+  try { renderLog(); } catch(e) {}
+  try { initViewButtons(); } catch(e) {}
+  try { initCaloPeriodButtons(); } catch(e) {}
+  _appReady = true; // signal that app is fully initialized
+}
 
-initViewButtons();
-setInterval(() => { updateBalance(); drawChart(); refreshTimeIfUntouched(); }, 60000);
-window.addEventListener('resize', drawChart);
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) { loadLogs(); updateBalance(); drawChart(); }
+// ── Error logging system ─────────────────────────────────────
+const errorLog = [];
+
+function logError(context, err) {
+  const entry = {
+    time: new Date().toISOString(),
+    context,
+    message: err && err.message ? err.message : String(err),
+    stack: err && err.stack ? err.stack.split('\n').slice(0,3).join(' | ') : ''
+  };
+  errorLog.push(entry);
+  if (errorLog.length > 50) errorLog.shift(); // keep last 50
+  try { localStorage.setItem(ERROR_LOG_KEY, JSON.stringify(errorLog)); } catch(e) {}
+  console.error('[Glyco]', context, err);
+}
+
+function loadErrorLog() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(ERROR_LOG_KEY) || '[]');
+    if (Array.isArray(saved)) errorLog.push(...saved.slice(-50));
+  } catch(e) {}
+}
+
+// Global error handler
+window.onerror = function(msg, src, line, col, err) {
+  logError('global:' + (src||'') + ':' + line, err || new Error(msg));
+  showToast('⚠ Error logged — check Settings → Error Log', 3500);
+  return false;
+};
+
+window.addEventListener('unhandledrejection', e => {
+  logError('promise', e.reason);
 });
 
-// Register service worker for PWA offline support
+safeInit();
+
+// Wrap recurring calls in try/catch
+setInterval(() => {
+  try { updateBalance(); drawChart(); refreshTimeIfUntouched(); } catch(e) {}
+}, 60000);
+window.addEventListener('resize', () => { try { drawChart(); } catch(e) {} });
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    try { loadLogs(); updateBalance(); drawChart(); } catch(e) {}
+  }
+});
+
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
