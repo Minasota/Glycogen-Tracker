@@ -173,6 +173,11 @@
   .log-kcal { font-size: 13px; flex-shrink: 0; font-family: 'DM Mono', monospace; }
   .del-btn { background: none; border: none; color: var(--muted); font-size: 17px; cursor: pointer; padding: 0 3px; line-height: 1; }
 
+  /* Chart crosshair tooltip */
+  .chart-tooltip { position: absolute; background: var(--surface); border: 1px solid var(--accent); border-radius:8px; padding:8px 12px; font-size:12px; font-family:'DM Mono',monospace; pointer-events:none; z-index:10; white-space:nowrap; box-shadow:0 4px 20px rgba(0,0,0,0.4); min-width:130px; }
+  .chart-tooltip-time { color:var(--muted); font-size:10px; margin-bottom:3px; }
+  .chart-tooltip-val  { font-weight:700; font-size:16px; }
+
   /* Toast */
   .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #161a23; border: 1px solid var(--accent); color: var(--text); font-family: inherit; font-size: 11px; padding: 9px 18px; border-radius: 20px; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; z-index: 100; }
   .toast.show { opacity: 1; }
@@ -495,31 +500,14 @@
     </div>
   </div>
 
-  <!-- Stats — calorie mode: two section card -->
+  <!-- Stats — calorie mode: single card linked to graph view -->
   <div id="stats-calorie" style="display:none; margin-bottom:14px;">
-    <!-- All-time net -->
-    <div style="background:var(--surface); border-radius:8px; border:1px solid var(--border); padding:10px 14px; margin-bottom:8px;">
-      <div class="stat-label" id="calo-alltime-label">ALL-TIME DEFICIT BURNED</div>
-      <div class="stat-val" id="calo-alltime-val" style="margin-top:3px;">0 kcal</div>
-      <div class="stat-sub" id="calo-alltime-sub">since first log</div>
-    </div>
-    <!-- Period view -->
-    <div style="background:var(--surface); border-radius:8px; border:1px solid var(--border); padding:10px 14px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+    <div style="background:var(--surface); border-radius:8px; border:1px solid var(--border); padding:12px 14px;">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px;">
         <div class="stat-label" id="calo-period-label">LAST 24H</div>
-        <div class="stat-sub" id="calo-time" style="text-align:right;"></div>
+        <div class="stat-sub" id="calo-time"></div>
       </div>
-      <!-- Period selector -->
-      <div style="display:flex; gap:4px; flex-wrap:wrap; margin-bottom:10px;">
-        <button class="chart-btn" id="cpbtn-1D"  onclick="setCaloPeriod('1D')" >24h</button>
-        <button class="chart-btn" id="cpbtn-3D"  onclick="setCaloPeriod('3D')" >3D</button>
-        <button class="chart-btn" id="cpbtn-7D"  onclick="setCaloPeriod('7D')" >1W</button>
-        <button class="chart-btn" id="cpbtn-1M"  onclick="setCaloPeriod('1M')" >1M</button>
-        <button class="chart-btn" id="cpbtn-6M"  onclick="setCaloPeriod('6M')" >6M</button>
-        <button class="chart-btn" id="cpbtn-1Y"  onclick="setCaloPeriod('1Y')" >1Y</button>
-        <button class="chart-btn" id="cpbtn-ALL" onclick="setCaloPeriod('ALL')">ALL</button>
-      </div>
-      <div class="stat-val" id="calo-period-val" style="margin-top:2px;">0 kcal</div>
+      <div class="stat-val" id="calo-period-val" style="margin-top:2px; margin-bottom:2px;">0 kcal</div>
       <div class="stat-sub" id="calo-period-sub">starting from zero</div>
     </div>
   </div>
@@ -529,7 +517,8 @@
   <span id="exDeficit" style="display:none">0</span>
 
   <!-- Chart -->
-  <div class="chart-wrap">
+  <div class="chart-wrap" style="position:relative;">
+    <div id="chart-crosshair" class="chart-tooltip" style="display:none;"></div>
     <div class="chart-controls" style="flex-wrap:wrap; gap:4px;">
       <button class="chart-btn active" id="vbtn-1D" onclick="setView('1D')">1D</button>
       <button class="chart-btn" id="vbtn-3D" onclick="setView('3D')">3D</button>
@@ -538,7 +527,7 @@
       <button class="chart-btn" id="vbtn-1Y" onclick="setView('1Y')">1Y</button>
       <button class="chart-btn" id="vbtn-ALL" onclick="setView('ALL')">ALL</button>
     </div>
-    <canvas id="chart" height="260"></canvas>
+    <canvas id="chart" height="260" style="touch-action:none;"></canvas>
   </div>
 
   <div class="legend" id="chartLegend">
@@ -1039,6 +1028,103 @@ function setView(range) {
     if (btn) btn.classList.toggle('active', r === range);
   });
   drawChart();
+  if (trackerMode === 'calorie') updateCaloPeriodDisplay();
+}
+
+// ── Chart crosshair tooltip ──────────────────────────────────
+let crosshairActive = false;
+
+function getChartCoords(e, canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return { x: clientX - rect.left, y: clientY - rect.top, rectW: rect.width, rectH: rect.height };
+}
+
+function showCrosshair(e) {
+  const canvas = document.getElementById('chart');
+  const tooltip = document.getElementById('chart-crosshair');
+  if (!canvas || !tooltip) return;
+
+  const { x, rectW } = getChartCoords(e, canvas);
+  const PAD_LEFT = 52, PAD_RIGHT = 12, PAD_TOP = 18, PAD_BOT = 44;
+  const CW = rectW - PAD_LEFT - PAD_RIGHT;
+
+  if (x < PAD_LEFT || x > rectW - PAD_RIGHT) { tooltip.style.display = 'none'; return; }
+
+  const now = nowMs();
+  const startMs = trackerMode === 'calorie' ? Math.max(getStartMs(), now - getRangeMs()) : getStartMs();
+  const chartStartMs = Math.max(startMs, now - getRangeMs());
+  const totalSpan = now - chartStartMs;
+  const frac = (x - PAD_LEFT) / CW;
+  const atMs = chartStartMs + frac * totalSpan;
+
+  let val;
+  if (trackerMode === 'calorie') {
+    val = calcCaloNet(chartStartMs, atMs);
+  } else {
+    val = calcAt(atMs).balance;
+  }
+
+  const isGain = val > 0;
+  const d = new Date(atMs);
+  const DAYS2 = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MONTHS2 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let timeLabel;
+  if (viewRange === '1D') {
+    timeLabel = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  } else if (viewRange === '3D' || viewRange === '7D') {
+    timeLabel = DAYS2[d.getDay()] + ' ' + d.getDate() + '/' + (d.getMonth()+1);
+  } else if (viewRange === '1M') {
+    timeLabel = d.getDate() + '/' + (d.getMonth()+1);
+  } else {
+    timeLabel = MONTHS2[d.getMonth()] + ' ' + d.getFullYear();
+  }
+
+  tooltip.innerHTML =
+    '<div class="chart-tooltip-time">' + timeLabel + '</div>' +
+    '<div class="chart-tooltip-val" style="color:' + (isGain ? 'var(--bmr)' : 'var(--food)') + '">' +
+    (isGain?'+':'') + Math.round(val) + ' kcal</div>';
+
+  // Position tooltip: left or right of cursor
+  const tipW = 150;
+  const canvasRect = canvas.parentElement.getBoundingClientRect();
+  const tipLeft = x + PAD_LEFT + 10 > rectW - tipW ? x - tipW - 10 : x + 10;
+  tooltip.style.left = tipLeft + 'px';
+  tooltip.style.top = '40px';
+  tooltip.style.display = 'block';
+  crosshairActive = true;
+}
+
+function hideCrosshair() {
+  const tooltip = document.getElementById('chart-crosshair');
+  if (tooltip) tooltip.style.display = 'none';
+  crosshairActive = false;
+}
+
+function getRangeMs() {
+  const map = { '1D':86400000,'3D':3*86400000,'7D':7*86400000,'1M':30*86400000,'6M':182*86400000,'1Y':365*86400000 };
+  return map[viewRange] || (nowMs() - getStartMs());
+}
+
+function initChartInteraction() {
+  const canvas = document.getElementById('chart');
+  if (!canvas) return;
+  // Mouse
+  canvas.addEventListener('mousemove', showCrosshair);
+  canvas.addEventListener('mouseleave', hideCrosshair);
+  // Touch — long press to activate, then drag
+  let touchTimer = null;
+  canvas.addEventListener('touchstart', e => {
+    touchTimer = setTimeout(() => { showCrosshair(e); }, 300);
+  }, { passive: true });
+  canvas.addEventListener('touchmove', e => {
+    if (crosshairActive) { e.preventDefault(); showCrosshair(e); }
+  }, { passive: false });
+  canvas.addEventListener('touchend', () => {
+    clearTimeout(touchTimer);
+    setTimeout(hideCrosshair, 1500);
+  });
 }
 
 function initViewButtons() {
@@ -1086,12 +1172,51 @@ function drawChart() {
   const xP = ms => PAD.left + ((ms - chartStartMs) / totalSpan) * CW;
 
   // Sample balance curve (every 5 min)
+  // In calorie mode: recalculate from 0 at chartStartMs (not from app start)
   const STEP = 5 * 60 * 1000;
   const samples = [];
-  for (let t = chartStartMs; t <= endMs; t += STEP) {
-    samples.push({ ms: t, val: calcAt(t).balance, raw: calcAt(t).raw });
+  if (trackerMode === 'calorie') {
+    // Use calcCaloNet which starts fresh from 0 at chartStartMs
+    rebuildIndex();
+    const spreadLogsC = getSpreadLogs();
+    const appliedC = new Map(spreadLogsC.map(l => [l.id, 0]));
+    let caloBalance = 0;
+    const tsSet = new Set([chartStartMs, endMs]);
+    spreadLogsC.forEach(l => {
+      if (l.startTs > chartStartMs && l.startTs < endMs) tsSet.add(l.startTs);
+      if (l.endTs   > chartStartMs && l.endTs   < endMs) tsSet.add(l.endTs);
+    });
+    for (let t = chartStartMs; t <= endMs; t += SMOOTH_STEP) tsSet.add(t);
+    const caloTimeline = Array.from(tsSet).sort((a,b)=>a-b);
+    let lastSampleT = chartStartMs;
+    samples.push({ ms: chartStartMs, val: 0 });
+    for (let i = 1; i < caloTimeline.length; i++) {
+      const prevT = caloTimeline[i-1];
+      const currT = caloTimeline[i];
+      if (currT > endMs) break;
+      caloBalance -= ((currT - prevT) / 60000) * BMR_PER_MIN;
+      for (const l of spreadLogsC) {
+        if (l.startTs > currT || l.endTs < chartStartMs) continue;
+        const effStart = Math.max(l.startTs, chartStartMs);
+        const fracNow  = eventFraction(effStart, l.endTs, currT);
+        const fracPrev = appliedC.get(l.id) || 0;
+        const delta    = (fracNow - fracPrev) * l.kcal;
+        if (delta <= 0) continue;
+        appliedC.set(l.id, fracNow);
+        caloBalance += l.type === 'food' ? delta : -delta;
+      }
+      if (currT - lastSampleT >= STEP || currT === endMs) {
+        samples.push({ ms: currT, val: isNaN(caloBalance) ? 0 : caloBalance });
+        lastSampleT = currT;
+      }
+    }
+    if (samples[samples.length-1].ms < endMs) samples.push({ ms: endMs, val: isNaN(caloBalance)?0:caloBalance });
+  } else {
+    for (let t = chartStartMs; t <= endMs; t += STEP) {
+      samples.push({ ms: t, val: calcAt(t).balance, raw: calcAt(t).raw });
+    }
+    samples.push({ ms: endMs, val: calcAt(endMs).balance, raw: calcAt(endMs).raw });
   }
-  samples.push({ ms: endMs, val: calcAt(endMs).balance, raw: calcAt(endMs).raw });
 
   const maxGlyco = getMaxGlycogen();
   const allVals = samples.map(s => s.val);
@@ -1949,12 +2074,41 @@ function getCaloStartMs() {
 }
 
 function calcCaloNet(fromMs, toMs) {
-  // Calculate net calories from scratch within a window (starts at 0)
-  const periodMins = Math.max(0, (toMs - fromMs) / 60000);
-  const food = _foodSorted.filter(e => e.ts >= fromMs && e.ts <= toMs).reduce((a,e) => a+e.kcal, 0);
-  const ex   = _exSorted.filter(e => e.ts >= fromMs && e.ts <= toMs).reduce((a,e) => a+e.kcal, 0);
-  const bmr  = periodMins * BMR_PER_MIN;
-  return food - ex - bmr;
+  // Net calories within a window, starting fresh from 0
+  // Uses same smooth spread logic — food/ex events partially within window count proportionally
+  rebuildIndex();
+  const spreadLogs = getSpreadLogs();
+  const timestamps = new Set([fromMs, toMs]);
+  spreadLogs.forEach(l => {
+    if (l.startTs > fromMs && l.startTs < toMs) timestamps.add(l.startTs);
+    if (l.endTs   > fromMs && l.endTs   < toMs) timestamps.add(l.endTs);
+  });
+  for (let t = fromMs; t <= toMs; t += SMOOTH_STEP) timestamps.add(t);
+  const timeline = Array.from(timestamps).sort((a,b) => a-b);
+
+  let balance = 0;
+  const applied = new Map(spreadLogs.map(l => [l.id, 0]));
+
+  for (let i = 1; i < timeline.length; i++) {
+    const prevT = timeline[i-1];
+    const currT = timeline[i];
+    if (currT > toMs) break;
+    // BMR drains within this window only
+    balance -= ((currT - prevT) / 60000) * BMR_PER_MIN;
+    // Apply food/exercise that falls within window
+    for (const l of spreadLogs) {
+      if (l.startTs > currT || l.endTs < fromMs) continue;
+      const effStart = Math.max(l.startTs, fromMs);
+      const effEnd   = l.endTs;
+      const fracNow  = eventFraction(effStart, effEnd, currT);
+      const fracPrev = applied.get(l.id) || 0;
+      const delta    = (fracNow - fracPrev) * l.kcal;
+      if (delta <= 0) continue;
+      applied.set(l.id, fracNow);
+      balance += l.type === 'food' ? delta : -delta;
+    }
+  }
+  return isNaN(balance) ? 0 : balance;
 }
 
 function updateCaloPeriodDisplay() {
@@ -1962,42 +2116,33 @@ function updateCaloPeriodDisplay() {
   rebuildIndex();
   const periodMsMap = { '1D': 86400000, '3D': 3*86400000, '7D': 7*86400000,
     '1M': 30*86400000, '6M': 182*86400000, '1Y': 365*86400000 };
+  const periodLabels = { '1D':'LAST 24H','3D':'LAST 3 DAYS','7D':'LAST WEEK',
+    '1M':'LAST MONTH','6M':'LAST 6 MONTHS','1Y':'LAST YEAR','ALL':'ALL TIME' };
 
-  // Period net (starts from 0 at window start)
+  // Period is linked to graph viewRange
   let periodFromMs;
-  if (caloPeriod === 'ALL') {
+  if (viewRange === 'ALL') {
     periodFromMs = getCaloStartMs();
   } else {
-    periodFromMs = now - (periodMsMap[caloPeriod] || 86400000);
+    periodFromMs = now - (periodMsMap[viewRange] || 86400000);
   }
-  const periodNet = calcCaloNet(periodFromMs, now);
+
+  // calcCaloNet: fresh from 0 at periodFromMs — no carry-over balance
+  const periodNet    = calcCaloNet(periodFromMs, now);
   const periodIsGain = periodNet > 0;
+
   const periodLabel = document.getElementById('calo-period-label');
   const periodVal   = document.getElementById('calo-period-val');
   const periodSub   = document.getElementById('calo-period-sub');
-  const periodLabels = { '1D':'LAST 24H','3D':'LAST 3 DAYS','7D':'LAST WEEK',
-    '1M':'LAST MONTH','6M':'LAST 6 MONTHS','1Y':'LAST YEAR','ALL':'ALL TIME' };
-  if (periodLabel) periodLabel.textContent = periodLabels[caloPeriod] || 'LAST 24H';
-  if (periodVal) {
-    periodVal.textContent = (periodIsGain?'+':'') + Math.round(periodNet) + ' kcal';
-    periodVal.style.color = periodIsGain ? '#f97316' : '#22c55e';
-  }
-  if (periodSub) periodSub.textContent = periodIsGain ? 'excess gained' : 'deficit burned';
+  const timeEl      = document.getElementById('calo-time');
 
-  // All-time net
-  const allFromMs = getCaloStartMs();
-  const allNet    = calcCaloNet(allFromMs, now);
-  const allIsGain = allNet > 0;
-  const allLabel  = document.getElementById('calo-alltime-label');
-  const allVal    = document.getElementById('calo-alltime-val');
-  const allSub    = document.getElementById('calo-alltime-sub');
-  if (allLabel) allLabel.textContent = allIsGain ? 'ALL-TIME EXCESS GAINED' : 'ALL-TIME DEFICIT BURNED';
-  if (allVal) {
-    allVal.textContent = (allIsGain?'+':'') + Math.round(allNet) + ' kcal';
-    allVal.style.color = allIsGain ? '#f97316' : '#22c55e';
+  if (periodLabel) periodLabel.textContent = periodLabels[viewRange] || 'LAST 24H';
+  if (periodVal) {
+    periodVal.textContent = (periodIsGain ? '+' : '') + Math.round(periodNet) + ' kcal';
+    periodVal.style.color = periodIsGain ? 'var(--bmr)' : 'var(--food)';
   }
-  if (allSub) allSub.textContent = 'since ' + (resetCaloMs > 0 ? fmtDate(resetCaloMs) : 'first log');
-  if (document.getElementById('calo-time')) document.getElementById('calo-time').textContent = fmtTime(now);
+  if (periodSub) periodSub.textContent = periodIsGain ? 'excess gained this period' : 'deficit burned this period';
+  if (timeEl) timeEl.textContent = fmtTime(now);
 }
 
 // (theme functions above)
@@ -2020,6 +2165,7 @@ function safeInit() {
   try { renderLog(); } catch(e) {}
   try { initViewButtons(); } catch(e) {}
   try { initCaloPeriodButtons(); } catch(e) {}
+  try { initChartInteraction(); } catch(e) {}
   _appReady = true; // signal that app is fully initialized
 }
 
