@@ -307,6 +307,9 @@
           🔍 Error Log <span id="error-count" style="color:var(--deficit);font-weight:700;"></span>
         </button>
         <div id="error-log-panel" style="display:none; background:var(--bg); border-radius:8px; border:1px solid var(--border); padding:10px; max-height:280px; overflow-y:auto; margin-bottom:8px; font-size:10px; font-family:'DM Mono',monospace; line-height:1.6;">
+          <div style="display:flex; justify-content:flex-end; margin-bottom:6px;">
+            <button onclick="copyErrorLog()" style="font-size:10px; color:var(--accent); background:none; border:1px solid var(--accent); border-radius:4px; padding:2px 8px; font-family:inherit; cursor:pointer;">Copy All</button>
+          </div>
           <div id="error-log-content" style="color:var(--muted);">No errors logged ✓</div>
         </div>
       </div>
@@ -615,12 +618,17 @@ const BMR_DEFAULT = 1940;
 let BMR_PER_MIN = BMR_DEFAULT / 1440;
 const BMR_STORE_KEY = 'glyco_bmr_settings';
 const KCAL_PER_KG_FAT = 7700;
-const STORE_KEY = 'glyco_v4_logs';
-const RESET_KEY = 'glyco_v4_reset';
-const DEFICIT_KEY = 'glyco_v4_deficit'; // cumulative odometer
-const UNIT_KEY = 'glyco_v4_unit';
-const MODE_KEY = 'glyco_v4_mode';
-const VIEW_KEY = 'glyco_v4_view';
+const STORE_KEY      = 'glyco_v4_logs';
+const RESET_KEY      = 'glyco_v4_reset';
+const DEFICIT_KEY    = 'glyco_v4_deficit';
+const UNIT_KEY       = 'glyco_v4_unit';
+const MODE_KEY       = 'glyco_v4_mode';
+const VIEW_KEY       = 'glyco_v4_view';
+const RESET_CALO_KEY = 'glyco_v4_reset_calo';
+const CALO_PERIOD_KEY= 'glyco_v4_calo_period';
+const ERROR_LOG_KEY  = 'glyco_v4_errors';
+const BACKUP_KEY     = 'glyco_v4_backup';
+const BACKUP_DATE_KEY= 'glyco_v4_backup_dt';
 
 // ── State ────────────────────────────────────────────────────
 let logs = [];
@@ -1843,6 +1851,17 @@ function importData(event) {
 }
 
 // ── Error log panel ───────────────────────────────────────────
+function copyErrorLog() {
+  try {
+    const text = errorLog.map(e =>
+      `[${e.time}] [${e.context}] ${e.message}${e.stack ? '\n  ' + e.stack : ''}`
+    ).join('\n\n') || 'No errors logged';
+    navigator.clipboard.writeText(text).then(() => showToast('Error log copied ✓'));
+  } catch(e) {
+    showToast('Copy failed — select text manually');
+  }
+}
+
 function toggleErrorLog() {
   const panel = document.getElementById('error-log-panel');
   if (!panel) return;
