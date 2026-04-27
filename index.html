@@ -625,6 +625,7 @@ let viewRange = '1D';
 let showKg = false;
 let useImperial = false;
 let resetMs = 0;
+let resetCaloMs = 0;
 let cumulativeDeficit = 0;
 let _appReady = false; // true after safeInit completes
 let caloPeriod = '1D'; // selected period in calo mode // cumulative deficit — never decreases when food is logged
@@ -1155,9 +1156,7 @@ function drawChart() {
 
   const now = nowMs();
   const endMs = now;
-  const dataStartMs = getStartMs();
-
-  // Compute chart window from viewRange
+  const dataStartMs = trackerMode === 'calorie' ? getCaloStartMs() : getStartMs();
   const rangeMap = { '1D': 1, '3D': 3, '7D': 7, '1M': 30, '1Y': 365 };
   let chartStartMs;
   if (viewRange === 'ALL') {
@@ -1176,41 +1175,36 @@ function drawChart() {
   const STEP = 5 * 60 * 1000;
   const samples = [];
   if (trackerMode === 'calorie') {
-    // Use calcCaloNet which starts fresh from 0 at chartStartMs
+    // Build a sorted list of all meaningful timestamps within the window
     rebuildIndex();
-    const spreadLogsC = getSpreadLogs();
-    const appliedC = new Map(spreadLogsC.map(l => [l.id, 0]));
-    let caloBalance = 0;
-    const tsSet = new Set([chartStartMs, endMs]);
+    const spreadLogsC = getSpreadLogs().filter(l => l.endTs >= chartStartMs);
+    const tsSet = new Set();
+    // Add regular samples
+    for (let t = chartStartMs; t <= endMs; t += STEP) tsSet.add(t);
+    tsSet.add(endMs);
+    // Add event start/end times for precision
     spreadLogsC.forEach(l => {
-      if (l.startTs > chartStartMs && l.startTs < endMs) tsSet.add(l.startTs);
-      if (l.endTs   > chartStartMs && l.endTs   < endMs) tsSet.add(l.endTs);
+      if (l.startTs >= chartStartMs && l.startTs <= endMs) tsSet.add(l.startTs);
+      if (l.endTs   >= chartStartMs && l.endTs   <= endMs) tsSet.add(l.endTs);
     });
-    for (let t = chartStartMs; t <= endMs; t += SMOOTH_STEP) tsSet.add(t);
-    const caloTimeline = Array.from(tsSet).sort((a,b)=>a-b);
-    let lastSampleT = chartStartMs;
-    samples.push({ ms: chartStartMs, val: 0 });
-    for (let i = 1; i < caloTimeline.length; i++) {
-      const prevT = caloTimeline[i-1];
-      const currT = caloTimeline[i];
-      if (currT > endMs) break;
-      caloBalance -= ((currT - prevT) / 60000) * BMR_PER_MIN;
+    const caloTimeline = Array.from(tsSet).sort((a,b) => a-b);
+
+    // For each sample point, compute net from 0 at chartStartMs using simple overlap method
+    caloTimeline.forEach(t => {
+      const windowMins = (t - chartStartMs) / 60000;
+      const bmr = windowMins * BMR_PER_MIN;
+      let food = 0, ex = 0;
       for (const l of spreadLogsC) {
-        if (l.startTs > currT || l.endTs < chartStartMs) continue;
-        const effStart = Math.max(l.startTs, chartStartMs);
-        const fracNow  = eventFraction(effStart, l.endTs, currT);
-        const fracPrev = appliedC.get(l.id) || 0;
-        const delta    = (fracNow - fracPrev) * l.kcal;
-        if (delta <= 0) continue;
-        appliedC.set(l.id, fracNow);
-        caloBalance += l.type === 'food' ? delta : -delta;
+        const overlapStart = Math.max(l.startTs, chartStartMs);
+        const overlapEnd   = Math.min(l.endTs, t);
+        if (overlapEnd <= overlapStart) continue;
+        const frac = (l.endTs - l.startTs) > 0 ? (overlapEnd - overlapStart) / (l.endTs - l.startTs) : 1;
+        if (l.type === 'food') food += l.kcal * frac;
+        else ex += l.kcal * frac;
       }
-      if (currT - lastSampleT >= STEP || currT === endMs) {
-        samples.push({ ms: currT, val: isNaN(caloBalance) ? 0 : caloBalance });
-        lastSampleT = currT;
-      }
-    }
-    if (samples[samples.length-1].ms < endMs) samples.push({ ms: endMs, val: isNaN(caloBalance)?0:caloBalance });
+      const val = food - ex - bmr;
+      samples.push({ ms: t, val: isNaN(val) ? 0 : val });
+    });
   } else {
     for (let t = chartStartMs; t <= endMs; t += STEP) {
       samples.push({ ms: t, val: calcAt(t).balance, raw: calcAt(t).raw });
@@ -2075,40 +2069,30 @@ function getCaloStartMs() {
 
 function calcCaloNet(fromMs, toMs) {
   // Net calories within a window, starting fresh from 0
-  // Uses same smooth spread logic — food/ex events partially within window count proportionally
+  // Simple approach: sum food/exercise that overlaps window, minus BMR for window duration
   rebuildIndex();
   const spreadLogs = getSpreadLogs();
-  const timestamps = new Set([fromMs, toMs]);
-  spreadLogs.forEach(l => {
-    if (l.startTs > fromMs && l.startTs < toMs) timestamps.add(l.startTs);
-    if (l.endTs   > fromMs && l.endTs   < toMs) timestamps.add(l.endTs);
-  });
-  for (let t = fromMs; t <= toMs; t += SMOOTH_STEP) timestamps.add(t);
-  const timeline = Array.from(timestamps).sort((a,b) => a-b);
+  const windowMins = Math.max(0, (toMs - fromMs) / 60000);
+  const bmrDrain = windowMins * BMR_PER_MIN;
 
-  let balance = 0;
-  const applied = new Map(spreadLogs.map(l => [l.id, 0]));
+  let foodNet = 0;
+  let exNet = 0;
 
-  for (let i = 1; i < timeline.length; i++) {
-    const prevT = timeline[i-1];
-    const currT = timeline[i];
-    if (currT > toMs) break;
-    // BMR drains within this window only
-    balance -= ((currT - prevT) / 60000) * BMR_PER_MIN;
-    // Apply food/exercise that falls within window
-    for (const l of spreadLogs) {
-      if (l.startTs > currT || l.endTs < fromMs) continue;
-      const effStart = Math.max(l.startTs, fromMs);
-      const effEnd   = l.endTs;
-      const fracNow  = eventFraction(effStart, effEnd, currT);
-      const fracPrev = applied.get(l.id) || 0;
-      const delta    = (fracNow - fracPrev) * l.kcal;
-      if (delta <= 0) continue;
-      applied.set(l.id, fracNow);
-      balance += l.type === 'food' ? delta : -delta;
-    }
+  for (const l of spreadLogs) {
+    // How much of this event's window overlaps with [fromMs, toMs]?
+    const overlapStart = Math.max(l.startTs, fromMs);
+    const overlapEnd   = Math.min(l.endTs,   toMs);
+    if (overlapEnd <= overlapStart) continue;
+    // Fraction of the event that falls within our window
+    const eventDuration = l.endTs - l.startTs;
+    const overlapFrac   = eventDuration > 0 ? (overlapEnd - overlapStart) / eventDuration : 1;
+    const kcalInWindow  = l.kcal * overlapFrac;
+    if (l.type === 'food') foodNet += kcalInWindow;
+    else exNet += kcalInWindow;
   }
-  return isNaN(balance) ? 0 : balance;
+
+  const net = foodNet - exNet - bmrDrain;
+  return isNaN(net) ? 0 : net;
 }
 
 function updateCaloPeriodDisplay() {
@@ -2124,7 +2108,9 @@ function updateCaloPeriodDisplay() {
   if (viewRange === 'ALL') {
     periodFromMs = getCaloStartMs();
   } else {
-    periodFromMs = now - (periodMsMap[viewRange] || 86400000);
+    const windowMs = periodMsMap[viewRange] || 86400000;
+    // Cap at actual data start so we don't drain BMR for empty periods
+    periodFromMs = Math.max(getCaloStartMs(), now - windowMs);
   }
 
   // calcCaloNet: fresh from 0 at periodFromMs — no carry-over balance
